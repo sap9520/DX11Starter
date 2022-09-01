@@ -179,11 +179,27 @@ void Game::CreateGeometry()
 	//    knowing the exact size (in pixels) of the image/window/etc.  
 	// - Long story short: Resizing the window also resizes the triangle,
 	//    since we're describing the triangle in terms of the window itself
-	Vertex vertices[] =
+	Vertex triangleVertices[] =
 	{
 		{ XMFLOAT3(+0.0f, +0.5f, +0.0f), red },
 		{ XMFLOAT3(+0.5f, -0.5f, +0.0f), blue },
 		{ XMFLOAT3(-0.5f, -0.5f, +0.0f), green },
+	};
+
+	Vertex squareVertices[] =
+	{
+		{ XMFLOAT3(+0.3f, +0.3f, +0.0f), red }, // top left
+		{ XMFLOAT3(+0.6f, +0.3f, +0.0f), blue }, // top right
+		{ XMFLOAT3(+0.6f, +0.0f, +0.0f), green }, // bottom right
+		{ XMFLOAT3(+0.3f, +0.0f, +0.0f), green }, // bottom left
+	};
+
+	Vertex pentagonVertices[]{
+		{ XMFLOAT3(-0.6f, +0.6f, +0.0f), red }, 
+		{ XMFLOAT3(-0.3f, +0.35f, +0.0f), blue },
+		{ XMFLOAT3(-0.9f, +0.35f, +0.0f), blue },
+		{ XMFLOAT3(-0.4f, +0.0f, +0.0f), green },
+		{ XMFLOAT3(-0.8f, +0.0f, +0.0f), green },
 	};
 
 	// Set up indices, which tell us which vertices to use and in which order
@@ -191,12 +207,18 @@ void Game::CreateGeometry()
 	// - Indices are technically not required if the vertices are in the buffer 
 	//    in the correct order and each one will be used exactly once
 	// - But just to see how it's done...
-	unsigned int indices[] = { 0, 1, 2 };
+	unsigned int triangleIndices[] = { 0, 1, 2 };
 
-	// TODO: add params
-	triangle = std::make_shared<Mesh>();
-	square = std::make_shared<Mesh>();
-	circle = std::make_shared<Mesh>();
+	unsigned int squareIndices[] = { 0, 1, 2,
+									 0, 2, 3 };
+
+	unsigned int pentagonIndices[]{ 0, 1, 2,
+									2, 1, 3,
+									2, 3, 4 };
+
+	triangleMesh = std::make_shared<Mesh>(triangleVertices, 3, triangleIndices, 3, device, context);
+	squareMesh = std::make_shared<Mesh>(squareVertices, 4, squareIndices, 6, device, context);
+	pentagonMesh = std::make_shared<Mesh>(pentagonVertices, 5, pentagonIndices, 9, device, context);
 }
 
 
@@ -241,27 +263,10 @@ void Game::Draw(float deltaTime, float totalTime)
 	// DRAW geometry
 	// - These steps are generally repeated for EACH object you draw
 	// - Other Direct3D calls will also be necessary to do more complex things
-	UINT stride = sizeof(Vertex);
-	UINT offset = 0;
 	{
-		// Set buffers in the input assembler (IA) stage
-		//  - Do this ONCE PER OBJECT, since each object may have different geometry
-		//  - For this demo, this step *could* simply be done once during Init()
-		//  - However, this needs to be done between EACH DrawIndexed() call
-		//     when drawing different geometry, so it's here as an example
-		context->IASetVertexBuffers(0, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
-		context->IASetIndexBuffer(indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-
-		// Tell Direct3D to draw
-		//  - Begins the rendering pipeline on the GPU
-		//  - Do this ONCE PER OBJECT you intend to draw
-		//  - This will use all currently set Direct3D resources (shaders, buffers, etc)
-		//  - DrawIndexed() uses the currently set INDEX BUFFER to look up corresponding
-		//     vertices in the currently set VERTEX BUFFER
-		context->DrawIndexed(
-			3,     // The number of indices to use (we could draw a subset if we wanted)
-			0,     // Offset to the first index we want to use
-			0);    // Offset to add to each index when looking up vertices
+		triangleMesh->Draw();
+		squareMesh->Draw();
+		pentagonMesh->Draw();
 	}
 
 	// Frame END

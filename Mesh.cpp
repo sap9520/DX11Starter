@@ -49,7 +49,7 @@ Mesh::Mesh(
 		//  - Bind Flag (used as an index buffer instead of a vertex buffer) 
 		D3D11_BUFFER_DESC ibd	= {};
 		ibd.Usage				= D3D11_USAGE_IMMUTABLE;	// Will NEVER change
-		ibd.ByteWidth			= sizeof(unsigned int) * numVertices;	// 3 = number of indices in the buffer
+		ibd.ByteWidth			= sizeof(unsigned int) * numIndices;	// 3 = number of indices in the buffer
 		ibd.BindFlags			= D3D11_BIND_INDEX_BUFFER;	// Tells Direct3D this is an index buffer
 		ibd.CPUAccessFlags		= 0;	// Note: We cannot access the data from C++ (this is good)
 		ibd.MiscFlags			= 0;

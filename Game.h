@@ -41,8 +41,8 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
 	Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
 
-	std::shared_ptr<Mesh> triangle;
-	std::shared_ptr<Mesh> square;
-	std::shared_ptr<Mesh> circle;
+	std::shared_ptr<Mesh> triangleMesh;
+	std::shared_ptr<Mesh> squareMesh;
+	std::shared_ptr<Mesh> pentagonMesh;
 };
 
