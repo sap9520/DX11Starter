@@ -6,6 +6,7 @@
 // Needed for a helper function to load pre-compiled shader files
 #pragma comment(lib, "d3dcompiler.lib")
 #include <d3dcompiler.h>
+#include "BufferStructs.h"
 
 // For the DirectX Math library
 using namespace DirectX;
@@ -81,6 +82,18 @@ void Game::Init()
 		//    these calls will need to happen multiple times per frame
 		context->VSSetShader(vertexShader.Get(), 0, 0);
 		context->PSSetShader(pixelShader.Get(), 0, 0);
+
+		// Get size as the next multiple of 16 (instead of hardcoding a size here!)
+		unsigned int size = sizeof(VertexShaderExternalData);
+		size = (size + 15) / 16 * 16; // This will work even if your struct size changes
+
+		D3D11_BUFFER_DESC cbDesc	= {}; // Sets struct to all zeros
+		cbDesc.BindFlags			= D3D11_BIND_CONSTANT_BUFFER;
+		cbDesc.ByteWidth			= size;
+		cbDesc.CPUAccessFlags		= D3D11_CPU_ACCESS_WRITE;
+		cbDesc.Usage				= D3D11_USAGE_DYNAMIC;
+
+		device->CreateBuffer(&cbDesc, 0, vsConstantBuffer.GetAddressOf());
 	}
 }
 
@@ -258,6 +271,25 @@ void Game::Draw(float deltaTime, float totalTime)
 
 		// Clear the depth buffer (resets per-pixel occlusion information)
 		context->ClearDepthStencilView(depthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+	}
+
+	// Set shader data
+	{
+		VertexShaderExternalData vsData;
+		vsData.colorTint = XMFLOAT4(1.0f, 0.5f, 0.5f, 1.0f);
+		vsData.offset = XMFLOAT3(0.25f, 0.0f, 0.0f);
+
+		D3D11_MAPPED_SUBRESOURCE mappedBuffer = {};
+		context->Map(vsConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedBuffer);
+
+		memcpy(mappedBuffer.pData, &vsData, sizeof(vsData));
+		
+		context->Unmap(vsConstantBuffer.Get(), 0);
+
+		context->VSSetConstantBuffers(
+			0,		// Which slot (register) to bind the buffer to
+			1,		// How many are we activating? Can do multiple at once
+			vsConstantBuffer.GetAddressOf()); // Array of buffers (or the address of one)
 	}
 
 	// DRAW geometry
