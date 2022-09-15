@@ -7,7 +7,7 @@ Transform::Transform() :
 	scale(1,1,1)
 {
 	XMStoreFloat4x4(&worldMatrix, XMMatrixIdentity());
-	matrixDirty = false; // might have to change to 'true'?
+	matrixDirty = false;
 }
 
 void Transform::MoveAbsolute(float x, float y, float z) {
