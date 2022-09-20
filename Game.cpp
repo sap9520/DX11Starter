@@ -232,6 +232,14 @@ void Game::CreateGeometry()
 	triangleMesh = std::make_shared<Mesh>(triangleVertices, 3, triangleIndices, 3, device, context);
 	squareMesh = std::make_shared<Mesh>(squareVertices, 4, squareIndices, 6, device, context);
 	pentagonMesh = std::make_shared<Mesh>(pentagonVertices, 5, pentagonIndices, 9, device, context);
+
+	entities = std::vector<GameEntity>();
+	entities.push_back(GameEntity(triangleMesh));
+	entities.push_back(GameEntity(triangleMesh));
+	entities.push_back(GameEntity(triangleMesh));
+	entities.push_back(GameEntity(squareMesh));
+	entities.push_back(GameEntity(pentagonMesh));
+	entities.push_back(GameEntity(pentagonMesh));
 }
 
 
@@ -254,6 +262,14 @@ void Game::Update(float deltaTime, float totalTime)
 	// Example input checking: Quit if the escape key is pressed
 	if (Input::GetInstance().KeyDown(VK_ESCAPE))
 		Quit();
+
+	float scale = (float)sin(totalTime * 2) + 1;
+	entities[0].GetTransform()->SetPosition(0.0f, (float)sin(totalTime), 0.0f);
+	entities[1].GetTransform()->SetPosition((float)sin(totalTime), 0.5f, 0.5f);
+	entities[2].GetTransform()->Rotate(0.0f, deltaTime, 0.0f);
+	entities[3].GetTransform()->Rotate(0.0f, 0.0f, deltaTime);
+	entities[4].GetTransform()->SetScale(scale, scale, scale);
+	entities[5].GetTransform()->SetPosition(0.0f, -(float)sin(totalTime), 0.0f);
 }
 
 // --------------------------------------------------------
@@ -273,32 +289,8 @@ void Game::Draw(float deltaTime, float totalTime)
 		context->ClearDepthStencilView(depthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 	}
 
-	// Set shader data
-	{
-		VertexShaderExternalData vsData;
-		vsData.colorTint = XMFLOAT4(1.0f, 0.5f, 0.5f, 1.0f);
-		vsData.offset = XMFLOAT3(0.25f, 0.0f, 0.0f);
-
-		D3D11_MAPPED_SUBRESOURCE mappedBuffer = {};
-		context->Map(vsConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedBuffer);
-
-		memcpy(mappedBuffer.pData, &vsData, sizeof(vsData));
-		
-		context->Unmap(vsConstantBuffer.Get(), 0);
-
-		context->VSSetConstantBuffers(
-			0,		// Which slot (register) to bind the buffer to
-			1,		// How many are we activating? Can do multiple at once
-			vsConstantBuffer.GetAddressOf()); // Array of buffers (or the address of one)
-	}
-
-	// DRAW geometry
-	// - These steps are generally repeated for EACH object you draw
-	// - Other Direct3D calls will also be necessary to do more complex things
-	{
-		triangleMesh->Draw();
-		squareMesh->Draw();
-		pentagonMesh->Draw();
+	for(GameEntity ge : entities) {
+		ge.Draw(context, vsConstantBuffer);
 	}
 
 	// Frame END

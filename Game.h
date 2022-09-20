@@ -2,9 +2,11 @@
 
 #include "DXCore.h"
 #include "Mesh.h"
+#include "GameEntity.h"
 #include <DirectXMath.h>
 #include <wrl/client.h> // Used for ComPtr - a smart pointer for COM objects
 #include <memory>
+#include <vector>
 
 class Game 
 	: public DXCore
@@ -45,5 +47,7 @@ private:
 	std::shared_ptr<Mesh> triangleMesh;
 	std::shared_ptr<Mesh> squareMesh;
 	std::shared_ptr<Mesh> pentagonMesh;
+
+	std::vector<GameEntity> entities;
 };
 
