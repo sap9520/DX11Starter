@@ -50,7 +50,7 @@ DirectX::XMFLOAT3 Transform::GetPosition() { return position; }
 DirectX::XMFLOAT3 Transform::GetPitchYawRoll() { return pitchYawRoll; }
 DirectX::XMFLOAT3 Transform::GeScale() { return scale; }
 
-DirectX::XMFLOAT4X4 Transform::GetWorldMatrix() {
+DirectX::XMFLOAT4X4 Transform::GetWorldMatrix() { 
 	UpdateMatrices();
 
 	return world;
@@ -63,11 +63,11 @@ DirectX::XMFLOAT4X4 Transform::GetWorldInverseTransposeMatrix() {
 }
 
 void Transform::UpdateMatrices() {
-	XMMATRIX trans = XMMatrixTranslation(position.x, position.y, position.z);
-	XMMATRIX rot = XMMatrixRotationRollPitchYaw(pitchYawRoll.x, pitchYawRoll.y, pitchYawRoll.z);
-	XMMATRIX sc = XMMatrixScaling(scale.x, scale.y, scale.z);
+		XMMATRIX trans = XMMatrixTranslation(position.x, position.y, position.z);
+		XMMATRIX rot = XMMatrixRotationRollPitchYaw(pitchYawRoll.x, pitchYawRoll.y, pitchYawRoll.z);
+		XMMATRIX sc = XMMatrixScaling(scale.x, scale.y, scale.z);
 
-	XMMATRIX worldMat = sc * rot * trans;
+		XMMATRIX worldMat = sc * rot * trans;
 
 	XMStoreFloat4x4(&world, worldMat);
 	XMStoreFloat4x4(&worldInverseTranspose, XMMatrixInverse(0, XMMatrixTranspose(worldMat)));
