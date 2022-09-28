@@ -14,6 +14,7 @@ public:
 
 	// Transformers
 	void MoveAbsolute(float x, float y, float z);
+	void MoveRelative(float x, float y, float z);
 	void Rotate(float p, float y, float r);
 	void Scale(float x, float y, float z);
 
@@ -21,6 +22,10 @@ public:
 	DirectX::XMFLOAT3 GetPosition();
 	DirectX::XMFLOAT3 GetPitchYawRoll();
 	DirectX::XMFLOAT3 GeScale();
+
+	DirectX::XMFLOAT3 GetRight();
+	DirectX::XMFLOAT3 GetUp();
+	DirectX::XMFLOAT3 GetForward();
 
 	DirectX::XMFLOAT4X4 GetWorldMatrix();
 	DirectX::XMFLOAT4X4 GetWorldInverseTransposeMatrix();

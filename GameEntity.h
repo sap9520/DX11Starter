@@ -2,6 +2,7 @@
 
 #include "Transform.h"
 #include "Mesh.h"
+#include "Camera.h"
 #include <memory>
 
 class GameEntity
@@ -14,7 +15,8 @@ public:
 
 	void Draw(
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> context,
-		Microsoft::WRL::ComPtr<ID3D11Buffer> vsConstantBuffer);
+		Microsoft::WRL::ComPtr<ID3D11Buffer> vsConstantBuffer,
+		Camera* camera);
 
 private:
 	Transform transform;

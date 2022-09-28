@@ -3,6 +3,10 @@
 #include "Input.h"
 #include "Helpers.h"
 
+#include "ImGui/imgui.h"
+#include "ImGui/imgui_impl_dx11.h"
+#include "ImGui/imgui_impl_win32.h"
+
 // Needed for a helper function to load pre-compiled shader files
 #pragma comment(lib, "d3dcompiler.lib")
 #include <d3dcompiler.h>
@@ -48,6 +52,10 @@ Game::~Game()
 
 	// Call Release() on any Direct3D objects made within this class
 	// - Note: this is unnecessary for D3D objects stored in ComPtrs
+
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
 }
 
 // --------------------------------------------------------
@@ -56,6 +64,14 @@ Game::~Game()
 // --------------------------------------------------------
 void Game::Init()
 {
+	// Initialize ImGui itself & platform/renderer backends
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGui_ImplWin32_Init(hWnd);
+	ImGui_ImplDX11_Init(device.Get(), context.Get());
+
+	ImGui::StyleColorsDark();
+
 	// Helper methods for loading shaders, creating some basic
 	// geometry to draw and some simple camera matrices.
 	//  - You'll be expanding and/or replacing these later
@@ -95,6 +111,8 @@ void Game::Init()
 
 		device->CreateBuffer(&cbDesc, 0, vsConstantBuffer.GetAddressOf());
 	}
+
+	camera = Camera();
 }
 
 // --------------------------------------------------------
@@ -252,6 +270,8 @@ void Game::OnResize()
 {
 	// Handle base-level DX resize stuff
 	DXCore::OnResize();
+
+	camera.UpdateProjectionMatrix((float)this->windowWidth / this->windowHeight);
 }
 
 // --------------------------------------------------------
@@ -259,17 +279,72 @@ void Game::OnResize()
 // --------------------------------------------------------
 void Game::Update(float deltaTime, float totalTime)
 {
+	// Get a reference to our custom input manager
+	Input& input = Input::GetInstance();
+	// Reset input manager's gui state so we don’t
+	// taint our own input (you’ll uncomment later)
+	input.SetKeyboardCapture(false);
+	input.SetMouseCapture(false);
+	// Feed fresh input data to ImGui
+	ImGuiIO& io = ImGui::GetIO();
+	io.DeltaTime = deltaTime;
+	io.DisplaySize.x = (float)this->windowWidth;
+	io.DisplaySize.y = (float)this->windowHeight;
+	io.KeyCtrl = input.KeyDown(VK_CONTROL);
+	io.KeyShift = input.KeyDown(VK_SHIFT);
+	io.KeyAlt = input.KeyDown(VK_MENU);
+	io.MousePos.x = (float)input.GetMouseX();
+	io.MousePos.y = (float)input.GetMouseY();
+	io.MouseDown[0] = input.MouseLeftDown();
+	io.MouseDown[1] = input.MouseRightDown();
+	io.MouseDown[2] = input.MouseMiddleDown();
+	io.MouseWheel = input.GetMouseWheel();
+	input.GetKeyArray(io.KeysDown, 256);
+	// Reset the frame
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+	// Determine new input capture (you’ll uncomment later)
+	input.SetKeyboardCapture(io.WantCaptureKeyboard);
+	input.SetMouseCapture(io.WantCaptureMouse);
+	// Show the demo window
+	ImGui::ShowDemoWindow();
+
+	// ImGui Windows
+	{
+		ImGui::Begin("Data");
+		ImGui::Text("Current FPS: %f", io.Framerate);
+		ImGui::End();
+
+		ImGui::Begin("Inspector");
+		XMFLOAT3 currentPos;
+		for (int i = 0; i < entities.size(); i++) {
+			ImGui::Text("Entity %i Movement Controls", i);
+
+			currentPos = entities[i].GetTransform()->GetPosition();
+			ImGui::PushID(i);
+			if (ImGui::DragFloat3("##", &currentPos.x, 0.1f, -1.0f, 1.0f)) {
+				entities[i].GetTransform()->SetPosition(currentPos.x, currentPos.y, currentPos.z);
+			}
+			ImGui::PopID();
+
+			entities[i].GetTransform()->SetPosition(currentPos.x, (float)sin(totalTime), currentPos.z);
+		}
+		ImGui::End();
+	}
+
 	// Example input checking: Quit if the escape key is pressed
 	if (Input::GetInstance().KeyDown(VK_ESCAPE))
 		Quit();
 
 	float scale = (float)sin(totalTime * 2) + 1;
-	entities[0].GetTransform()->SetPosition(0.0f, (float)sin(totalTime), 0.0f);
 	entities[1].GetTransform()->SetPosition((float)sin(totalTime), 0.5f, 0.5f);
 	entities[2].GetTransform()->Rotate(0.0f, deltaTime, 0.0f);
 	entities[3].GetTransform()->Rotate(0.0f, 0.0f, deltaTime);
 	entities[4].GetTransform()->SetScale(scale, scale, scale);
 	entities[5].GetTransform()->SetPosition(0.0f, -(float)sin(totalTime), 0.0f);
+
+	camera.Update(deltaTime);
 }
 
 // --------------------------------------------------------
@@ -290,13 +365,17 @@ void Game::Draw(float deltaTime, float totalTime)
 	}
 
 	for(GameEntity ge : entities) {
-		ge.Draw(context, vsConstantBuffer);
+		ge.Draw(context, vsConstantBuffer, &camera);
 	}
 
 	// Frame END
 	// - These should happen exactly ONCE PER FRAME
 	// - At the very end of the frame (after drawing *everything*)
 	{
+		// Draw ImGui
+		ImGui::Render();
+		ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+
 		// Present the back buffer to the user
 		//  - Puts the results of what we've drawn onto the window
 		//  - Without this, the user never sees anything

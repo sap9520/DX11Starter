@@ -1,6 +1,10 @@
 #include "DXCore.h"
 #include "Input.h"
 
+#include "ImGui/imgui.h"
+#include "ImGui/imgui_impl_dx11.h"
+#include "ImGui/imgui_impl_win32.h"
+
 #include <WindowsX.h>
 #include <sstream>
 
@@ -600,6 +604,11 @@ LRESULT DXCore::ProcessMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 	case WM_SETFOCUS:	hasFocus = true;	return 0;
 	case WM_KILLFOCUS:	hasFocus = false;	return 0;
 	case WM_ACTIVATE:	hasFocus = (LOWORD(wParam) != WA_INACTIVE); return 0;
+		
+	// Has a key been pressed?
+	case WM_CHAR:
+		ImGui::GetIO().AddInputCharacter((char)wParam);
+		return 0;
 	}
 
 	// Let Windows handle any messages we're not touching
