@@ -1,19 +1,44 @@
+#include "ShaderIncludes.hlsli"
 
-// Struct representing the data we expect to receive from earlier pipeline stages
-// - Should match the output of our corresponding vertex shader
-// - The name of the struct itself is unimportant
-// - The variable names don't have to match other shaders (just the semantics)
-// - Each variable must have a semantic, which defines its usage
-struct VertexToPixel
-{
-	// Data type
-	//  |
-	//  |   Name          Semantic
-	//  |    |                |
-	//  v    v                v
-	float4 screenPosition	: SV_POSITION;
-	float4 color			: COLOR;
+#define LIGHT_TYPE_DIRECTIONAL	0
+#define LIGHT_TYPE_POINT		1
+#define LIGHT_TYPE_SPOT			2
+#define MAX_SPECULAR_EXPONENT 256.0f
+
+#define NUM_LIGHTS				5
+
+struct Light {
+	int Type;
+	float3 Direction;
+	float Range;
+	float3 Position;
+	float Intensity;
+	float3 Color;
+	float SpotFalloff;
+	float3 Padding;
 };
+
+
+cbuffer ExternalData : register(b0)
+{
+	float4 colorTint;
+	float3 cameraPosition;
+	float roughness;
+	float3 ambient;
+
+	Light lights[5];
+}
+
+
+float GetDiffuseLight(float3 normal, float3 dirToLight) {
+	return saturate(dot(normal, dirToLight));
+}
+
+float Attenuate(Light light, float3 worldPos) {
+	float dist = distance(light.Position, worldPos);
+	float att = saturate(1.0f - (dist * dist / (light.Range * light.Range)));
+	return att * att;
+}
 
 // --------------------------------------------------------
 // The entry point (main method) for our pixel shader
@@ -26,9 +51,44 @@ struct VertexToPixel
 // --------------------------------------------------------
 float4 main(VertexToPixel input) : SV_TARGET
 {
-	// Just return the input color
-	// - This color (like most values passing through the rasterizer) is 
-	//   interpolated for each pixel between the corresponding vertices 
-	//   of the triangle we're rendering
-	return input.color;
+	input.normal = normalize(input.normal);
+
+	float3 pixColor = ambient * colorTint;
+
+	for (int i = 0; i < NUM_LIGHTS; i++) {
+		Light currentLight = lights[i];
+
+		float3 dirNormalized;
+
+		switch (currentLight.Type) {
+			case LIGHT_TYPE_DIRECTIONAL:
+				dirNormalized = normalize(-currentLight.Direction);
+				break;
+			case LIGHT_TYPE_POINT:
+				dirNormalized = normalize(currentLight.Position - input.worldPosition);
+				break;
+		}
+
+		float diffuse = GetDiffuseLight(input.normal, dirNormalized);
+
+		float specExponent = (1.0f - roughness) * MAX_SPECULAR_EXPONENT;
+		float3 V = normalize(cameraPosition - input.worldPosition);
+		float R = reflect(-dirNormalized, input.normal);
+		float spec = pow(saturate(dot(R, V)), specExponent);
+
+		pixColor += (diffuse + spec) * currentLight.Color * colorTint;
+
+		switch (currentLight.Type) {
+			case LIGHT_TYPE_DIRECTIONAL:
+				pixColor += (diffuse + spec) * currentLight.Color * colorTint;
+				break;
+			case LIGHT_TYPE_POINT:
+				pixColor += ((diffuse + spec) * currentLight.Color * colorTint) 
+					* Attenuate(currentLight, input.worldPosition);
+				break;
+		}
+	}
+
+
+	return float4(pixColor, 1);
 }

@@ -30,6 +30,7 @@ Camera::Camera(float aspectRatio, DirectX::XMFLOAT3 initialPos) :
 
 XMFLOAT4X4 Camera::GetViewMatrix() { return viewMat; }
 XMFLOAT4X4 Camera::GetProjectionMatrix() { return projectionMat; }
+Transform Camera::GetTransform() { return transform; }
 
 void Camera::UpdateProjectionMatrix(float aspectRatio) {
 	XMStoreFloat4x4(&projectionMat, XMMatrixPerspectiveFovLH(fov, aspectRatio, nearClipDist, farClipDist));

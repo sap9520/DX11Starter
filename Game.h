@@ -4,6 +4,8 @@
 #include "Mesh.h"
 #include "GameEntity.h"
 #include "Camera.h"
+#include "SimpleShader.h"
+#include "Lights.h";
 
 #include <DirectXMath.h>
 #include <wrl/client.h> // Used for ComPtr - a smart pointer for COM objects
@@ -28,6 +30,7 @@ public:
 private:
 
 	// Initialization helper methods - feel free to customize, combine, remove, etc.
+	void InitLights();
 	void LoadShaders(); 
 	void CreateGeometry();
 
@@ -39,16 +42,23 @@ private:
 	// Buffers to hold actual geometry data
 	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
 	Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> vsConstantBuffer;
 	
 	// Shaders and shader-related constructs
-	Microsoft::WRL::ComPtr<ID3D11PixelShader> pixelShader;
-	Microsoft::WRL::ComPtr<ID3D11VertexShader> vertexShader;
-	Microsoft::WRL::ComPtr<ID3D11InputLayout> inputLayout;
+	std::shared_ptr<SimplePixelShader> pixelShader;
+	std::shared_ptr<SimplePixelShader> customPixelShader;
+	std::shared_ptr<SimpleVertexShader> vertexShader;
 
-	std::shared_ptr<Mesh> triangleMesh;
-	std::shared_ptr<Mesh> squareMesh;
-	std::shared_ptr<Mesh> pentagonMesh;
+	std::vector<Light> lights;
+	DirectX::XMFLOAT3 ambientColor;
+	std::shared_ptr<Material> customMat;
+
+	std::shared_ptr<Mesh> cubeMesh;
+	std::shared_ptr<Mesh> cylMesh;
+	std::shared_ptr<Mesh> helixMesh;
+	std::shared_ptr<Mesh> quadMesh;
+	std::shared_ptr<Mesh> doubleSidedQuadMesh;
+	std::shared_ptr<Mesh> sphereMesh;
+	std::shared_ptr<Mesh> torusMesh;
 
 	std::vector<GameEntity> entities;
 

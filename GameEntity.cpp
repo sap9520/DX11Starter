@@ -2,9 +2,14 @@
 #include "BufferStructs.h"
 using namespace DirectX;
 
-GameEntity::GameEntity(std::shared_ptr<Mesh> _mesh)
+GameEntity::GameEntity(
+	std::shared_ptr<Mesh> _mesh, 
+	std::shared_ptr<Material> _material)
+	:
+	mesh(_mesh),
+	material(_material)
 {
-	mesh = _mesh;
+
 }
 
 Transform* GameEntity::GetTransform()
@@ -17,30 +22,37 @@ std::shared_ptr<Mesh> GameEntity::GetMesh()
 	return mesh;
 }
 
+std::shared_ptr<Material> GameEntity::GetMaterial() {
+	return material;
+}
+
+void GameEntity::SetMaterial(Material _material) {
+	material = std::make_shared<Material>(_material);
+}
+
 void GameEntity::Draw(
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context, 
-	Microsoft::WRL::ComPtr<ID3D11Buffer> vsConstantBuffer,
 	Camera* camera) 
 {
 	// Set shader data
 	{
-		VertexShaderExternalData vsData;
-		vsData.colorTint = XMFLOAT4(1.0f, 0.5f, 0.5f, 1.0f);
-		vsData.worldMatrix = transform.GetWorldMatrix();
-		vsData.viewMatrix = camera->GetViewMatrix();
-		vsData.projectionMatrix = camera->GetProjectionMatrix();
+		material->GetVertexShader()->SetShader();
+		material->GetPixelShader()->SetShader();
 
-		D3D11_MAPPED_SUBRESOURCE mappedBuffer = {};
-		context->Map(vsConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedBuffer);
+		std::shared_ptr<SimpleVertexShader> vs = material->GetVertexShader();
+		vs->SetMatrix4x4("world", transform.GetWorldMatrix());
+		vs->SetMatrix4x4("worldInvTranspose", transform.GetWorldInverseTransposeMatrix());
+		vs->SetMatrix4x4("view", camera->GetViewMatrix());
+		vs->SetMatrix4x4("projection", camera->GetProjectionMatrix());
 
-		memcpy(mappedBuffer.pData, &vsData, sizeof(vsData));
+		vs->CopyAllBufferData();
 
-		context->Unmap(vsConstantBuffer.Get(), 0);
+		std::shared_ptr<SimplePixelShader> ps = material->GetPixelShader();
+		ps->SetFloat4("colorTint", material->GetColorTint());
+		ps->SetFloat3("cameraPosition", camera->GetTransform().GetPosition());
+		ps->SetFloat("roushness", material->GetRoughness());
 
-		context->VSSetConstantBuffers(
-			0,		// Which slot (register) to bind the buffer to
-			1,		// How many are we activating? Can do multiple at once
-			vsConstantBuffer.GetAddressOf()); // Array of buffers (or the address of one)
+		ps->CopyAllBufferData();
 	}
 
 	// DRAW geometry

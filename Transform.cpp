@@ -62,27 +62,30 @@ DirectX::XMFLOAT3 Transform::GetRight() {
 	XMVECTOR currentRotation = XMQuaternionRotationRollPitchYaw(pitchYawRoll.x, pitchYawRoll.y, pitchYawRoll.z);
 	XMVECTOR rot = XMVector3Rotate(XMVectorSet(1, 0, 0, 0), currentRotation);
 
-	XMStoreFloat3(&pitchYawRoll, rot);
+	XMFLOAT3 right;
+	XMStoreFloat3(&right, rot);
 
-	return pitchYawRoll;
+	return right;
 }
 
 DirectX::XMFLOAT3 Transform::GetUp() {
 	XMVECTOR currentRotation = XMQuaternionRotationRollPitchYaw(pitchYawRoll.x, pitchYawRoll.y, pitchYawRoll.z);
 	XMVECTOR rot = XMVector3Rotate(XMVectorSet(0, 1, 0, 0), currentRotation);
 
-	XMStoreFloat3(&pitchYawRoll, rot);
+	XMFLOAT3 up;
+	XMStoreFloat3(&up, rot);
 
-	return pitchYawRoll;
+	return up;
 }
 
 DirectX::XMFLOAT3 Transform::GetForward() {
 	XMVECTOR currentRotation = XMQuaternionRotationRollPitchYaw(pitchYawRoll.x, pitchYawRoll.y, pitchYawRoll.z);
 	XMVECTOR rot = XMVector3Rotate(XMVectorSet(0, 0, 1, 0), currentRotation);
 
-	XMStoreFloat3(&pitchYawRoll, rot);
+	XMFLOAT3 fwd;
+	XMStoreFloat3(&fwd, rot);
 
-	return pitchYawRoll;
+	return fwd;
 }
 
 DirectX::XMFLOAT4X4 Transform::GetWorldMatrix() { 
@@ -98,11 +101,11 @@ DirectX::XMFLOAT4X4 Transform::GetWorldInverseTransposeMatrix() {
 }
 
 void Transform::UpdateMatrices() {
-		XMMATRIX trans = XMMatrixTranslation(position.x, position.y, position.z);
-		XMMATRIX rot = XMMatrixRotationRollPitchYaw(pitchYawRoll.x, pitchYawRoll.y, pitchYawRoll.z);
-		XMMATRIX sc = XMMatrixScaling(scale.x, scale.y, scale.z);
+	XMMATRIX trans = XMMatrixTranslation(position.x, position.y, position.z);
+	XMMATRIX rot = XMMatrixRotationRollPitchYaw(pitchYawRoll.x, pitchYawRoll.y, pitchYawRoll.z);
+	XMMATRIX sc = XMMatrixScaling(scale.x, scale.y, scale.z);
 
-		XMMATRIX worldMat = sc * rot * trans;
+	XMMATRIX worldMat = sc * rot * trans;
 
 	XMStoreFloat4x4(&world, worldMat);
 	XMStoreFloat4x4(&worldInverseTranspose, XMMatrixInverse(0, XMMatrixTranspose(worldMat)));
