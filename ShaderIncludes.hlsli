@@ -18,6 +18,7 @@ struct VertexToPixel
 	float2 uv				: TEXTCOORD;
 	float3 normal			: NORMAL;
 	float3 worldPosition	: POSITION;
+	float3 tangent			: TANGENT;
 };
 
 // Struct representing a single vertex worth of data
@@ -35,6 +36,7 @@ struct VertexShaderInput
 	float3 localPosition	: POSITION;     // XYZ position
 	float3 normal			: NORMAL;
 	float2 uv				: TEXCOORD;
+	float3 tangent			: TANGENT;
 };
 
 #endif

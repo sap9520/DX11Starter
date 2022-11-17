@@ -1,0 +1,1 @@
+Extra Feature: Added the ability to add specular maps to materials.

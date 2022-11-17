@@ -5,7 +5,7 @@
 #define LIGHT_TYPE_SPOT			2
 #define MAX_SPECULAR_EXPONENT 256.0f
 
-#define NUM_LIGHTS				5
+#define NUM_LIGHTS				1
 
 struct Light {
 	int Type;
@@ -29,6 +29,10 @@ cbuffer ExternalData : register(b0)
 	Light lights[5];
 }
 
+Texture2D SurfaceTexture : register(t0);
+Texture2D SpecularTexture : register(t1);
+Texture2D NormalMap : register(t2);
+SamplerState BasicSampler : register(s0);
 
 float GetDiffuseLight(float3 normal, float3 dirToLight) {
 	return saturate(dot(normal, dirToLight));
@@ -51,9 +55,20 @@ float Attenuate(Light light, float3 worldPos) {
 // --------------------------------------------------------
 float4 main(VertexToPixel input) : SV_TARGET
 {
-	input.normal = normalize(input.normal);
+	float3 surfaceColor = pow(SurfaceTexture.Sample(BasicSampler, input.uv).rgb * colorTint.rgb, 2.2f);
+	float3 pixColor = surfaceColor * ambient;
 
-	float3 pixColor = ambient * colorTint;
+	float specMap = SpecularTexture.Sample(BasicSampler, input.uv).r;
+	float3 unpackedNormal = NormalMap.Sample(BasicSampler, input.uv).rgb * 2 - 1;
+
+	input.normal = normalize(input.normal);
+	input.tangent = normalize(input.tangent);
+
+	// Gram-Schmidt orthonormalization
+	float3 T = normalize(input.tangent - input.normal * dot(input.tangent, input.normal));
+	float3 B = cross(T, input.normal);
+	float3x3 TBN = float3x3(T, B, input.normal);
+	input.normal = mul(unpackedNormal, TBN);
 
 	for (int i = 0; i < NUM_LIGHTS; i++) {
 		Light currentLight = lights[i];
@@ -73,22 +88,22 @@ float4 main(VertexToPixel input) : SV_TARGET
 
 		float specExponent = (1.0f - roughness) * MAX_SPECULAR_EXPONENT;
 		float3 V = normalize(cameraPosition - input.worldPosition);
-		float R = reflect(-dirNormalized, input.normal);
-		float spec = pow(saturate(dot(R, V)), specExponent);
+		float3 R = reflect(-dirNormalized, input.normal);
+		float3 spec = pow(saturate(dot(R, V)), specExponent) * specMap;
 
-		pixColor += (diffuse + spec) * currentLight.Color * colorTint;
+		spec *= any(diffuse);
+		pixColor += (diffuse + spec) * currentLight.Color * (float3)surfaceColor;
 
 		switch (currentLight.Type) {
 			case LIGHT_TYPE_DIRECTIONAL:
-				pixColor += (diffuse + spec) * currentLight.Color * colorTint;
+				pixColor += (diffuse + spec) * currentLight.Color * (float3)surfaceColor;
 				break;
 			case LIGHT_TYPE_POINT:
-				pixColor += ((diffuse + spec) * currentLight.Color * colorTint) 
+				pixColor += ((diffuse + spec) * currentLight.Color * (float3)surfaceColor)
 					* Attenuate(currentLight, input.worldPosition);
 				break;
 		}
 	}
 
-
-	return float4(pixColor, 1);
+	return float4(pow(pixColor, 1.0f / 2.2f), 1);
 }

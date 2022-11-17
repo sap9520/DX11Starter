@@ -36,3 +36,16 @@ void Material::SetPixelShader(std::shared_ptr<SimplePixelShader> _ps)
 {
 	ps = _ps;
 }
+
+void Material::PrepareMaterial() {
+	for (auto& t : textureSRVs) { ps->SetShaderResourceView(t.first.c_str(), t.second); }
+	for (auto& s : samplers) { ps->SetSamplerState(s.first.c_str(), s.second); }
+}
+
+void Material::AddTextureSRV(std::string shaderName, Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv) {
+	textureSRVs.insert({ shaderName, srv });
+}
+
+void Material::AddSampler(std::string samplerName, Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler) {
+	samplers.insert({ samplerName, sampler });
+}

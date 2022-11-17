@@ -50,7 +50,7 @@ void GameEntity::Draw(
 		std::shared_ptr<SimplePixelShader> ps = material->GetPixelShader();
 		ps->SetFloat4("colorTint", material->GetColorTint());
 		ps->SetFloat3("cameraPosition", camera->GetTransform().GetPosition());
-		ps->SetFloat("roushness", material->GetRoughness());
+		ps->SetFloat("roughness", material->GetRoughness());
 
 		ps->CopyAllBufferData();
 	}
@@ -59,6 +59,6 @@ void GameEntity::Draw(
 	// - These steps are generally repeated for EACH object you draw
 	// - Other Direct3D calls will also be necessary to do more complex things
 	{
-		mesh->Draw();
+		mesh->Draw(context);
 	}
 }

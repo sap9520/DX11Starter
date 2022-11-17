@@ -5,7 +5,8 @@
 #include "GameEntity.h"
 #include "Camera.h"
 #include "SimpleShader.h"
-#include "Lights.h";
+#include "Lights.h"
+#include "Sky.h"
 
 #include <DirectXMath.h>
 #include <wrl/client.h> // Used for ComPtr - a smart pointer for COM objects
@@ -31,7 +32,8 @@ private:
 
 	// Initialization helper methods - feel free to customize, combine, remove, etc.
 	void InitLights();
-	void LoadShaders(); 
+	void LoadShaders();
+	void LoadTextures();
 	void CreateGeometry();
 
 	// Note the usage of ComPtr below
@@ -50,7 +52,8 @@ private:
 
 	std::vector<Light> lights;
 	DirectX::XMFLOAT3 ambientColor;
-	std::shared_ptr<Material> customMat;
+	std::shared_ptr<Material> metalMat;
+	std::shared_ptr<Material> tileMat;
 
 	std::shared_ptr<Mesh> cubeMesh;
 	std::shared_ptr<Mesh> cylMesh;
@@ -63,5 +66,6 @@ private:
 	std::vector<GameEntity> entities;
 
 	Camera camera;
+	std::shared_ptr<Sky> sky;
 };
 

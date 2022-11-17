@@ -8,6 +8,8 @@
 #include "ImGui/imgui_impl_dx11.h"
 #include "ImGui/imgui_impl_win32.h"
 
+#include "WICTextureLoader.h"
+
 // Needed for a helper function to load pre-compiled shader files
 #pragma comment(lib, "d3dcompiler.lib")
 #include <d3dcompiler.h>
@@ -79,10 +81,8 @@ void Game::Init()
 	InitLights();
 	LoadShaders();
 
-	ambientColor = XMFLOAT3(0.1f, 0.1f, 0.25f);
-	customMat = std::make_shared<Material>(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), vertexShader, pixelShader, 1.0f);
-
 	CreateGeometry();
+	LoadTextures();
 	
 	// Set initial graphics API state
 	//  - These settings persist until we change them
@@ -104,16 +104,16 @@ void Game::InitLights() {
 	lights.push_back(light1);
 	lights[0] = {};
 	lights[0].Type = LIGHT_TYPE_DIRECTIONAL;
-	lights[0].Direction = XMFLOAT3(1, 0, 0);
-	lights[0].Color = XMFLOAT3(0.5f, 0.0f, 0.0f);
+	lights[0].Direction = XMFLOAT3(-1, 0, 0);
+	lights[0].Color = XMFLOAT3(1.0f, 1.0f, 1.0f);
 	lights[0].Intensity = 1.0f;
 
 	Light light2 = {};
 	lights.push_back(light2);
 	lights[1] = {};
 	lights[1].Type = LIGHT_TYPE_DIRECTIONAL;
-	lights[1].Direction = XMFLOAT3(-1, 0, 0);
-	lights[1].Color = XMFLOAT3(0.0f, 0.5f, 0.0f);
+	lights[1].Direction = XMFLOAT3(1, 0, 0);
+	lights[1].Color = XMFLOAT3(0.8f, 0.8f, 0.8f);
 	lights[1].Intensity = 1.0f;
 
 	Light light3 = {};
@@ -121,7 +121,7 @@ void Game::InitLights() {
 	lights[2] = {};
 	lights[2].Type = LIGHT_TYPE_DIRECTIONAL;
 	lights[2].Direction = XMFLOAT3(0, 1, 0);
-	lights[2].Color = XMFLOAT3(0.0f, 0.0f, 0.5f);
+	lights[2].Color = XMFLOAT3(0.2f, 0.2f, 0.2f);
 	lights[2].Intensity = 1.0f;
 
 	Light light4 = {};
@@ -129,7 +129,7 @@ void Game::InitLights() {
 	lights[3] = {};
 	lights[3].Type = LIGHT_TYPE_POINT;
 	lights[3].Direction = XMFLOAT3(0.5f, 0.5f, 0);
-	lights[3].Color = XMFLOAT3(0.2f, 0.0f, 0.2f);
+	lights[3].Color = XMFLOAT3(0.2f, 0.2f, 0.2f);
 	lights[3].Range = D3D11_FLOAT32_MAX;
 	lights[3].Intensity = 0.2f;
 
@@ -138,7 +138,7 @@ void Game::InitLights() {
 	lights[4] = {};
 	lights[4].Type = LIGHT_TYPE_POINT;
 	lights[4].Direction = XMFLOAT3(-0.5f, -0.5f, 0);
-	lights[4].Color = XMFLOAT3(0.2f, 0.2f, 0.0f);
+	lights[4].Color = XMFLOAT3(0.2f, 0.2f, 0.2f);
 	lights[4].Range = D3D11_FLOAT32_MAX;
 	lights[4].Intensity = 0.2f;
 }
@@ -158,6 +158,77 @@ void Game::LoadShaders()
 	customPixelShader = std::make_shared<SimplePixelShader>(device, context, FixPath(L"CustomPS.cso").c_str());
 }
 
+void Game::LoadTextures() {
+	ambientColor = XMFLOAT3(0.5f, 0.2f, 0.5f);
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler;
+	D3D11_SAMPLER_DESC samplerDesc = {};
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+	samplerDesc.MaxAnisotropy = 5;
+	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	device->CreateSamplerState(&samplerDesc, sampler.GetAddressOf());
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalSRV;
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/metalColor.jpg").c_str(), 0, metalSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalSpecSRV;
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/metalSpec.jpg").c_str(), 0, metalSpecSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalNormalSRV;
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/metalNormal.jpg").c_str(), 0, metalNormalSRV.GetAddressOf());
+
+	metalMat = std::make_shared<Material>(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), vertexShader, pixelShader, 0.0f);
+	metalMat->AddTextureSRV("SurfaceTexture", metalSRV);
+	metalMat->AddTextureSRV("SpecularTexture", metalSpecSRV);
+	metalMat->AddTextureSRV("NormalMap", metalNormalSRV);
+	metalMat->AddSampler("BasicSampler", sampler);
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tileSRV;
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/tileColor.jpg").c_str(), 0, tileSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tileSpecSRV;
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/tileSpec.jpg").c_str(), 0, tileSpecSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tileNormalSRV;
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/tileNormal.jpg").c_str(), 0, tileNormalSRV.GetAddressOf());
+
+	tileMat = std::make_shared<Material>(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), vertexShader, pixelShader, 0.0f);
+	tileMat->AddTextureSRV("SurfaceTexture", tileSRV);
+	tileMat->AddTextureSRV("SpecularTexture", tileSpecSRV);
+	tileMat->AddTextureSRV("NormalMap", tileNormalSRV);
+	tileMat->AddSampler("BasicSampler", sampler);
+
+	std::shared_ptr<SimpleVertexShader> skyVS = std::make_shared<SimpleVertexShader>(device, context, FixPath(L"SkyVertexShader.cso").c_str());
+	std::shared_ptr<SimplePixelShader> skyPS= std::make_shared<SimplePixelShader>(device, context, FixPath(L"SkyPixelShader.cso").c_str());
+	sky = std::make_shared<Sky>(
+		cubeMesh,
+		sampler,
+		device,
+		context,
+		skyPS,
+		skyVS,
+		FixPath(L"../../Assets/Textures/sky/right.png").c_str(),
+		FixPath(L"../../Assets/Textures/sky/left.png").c_str(),
+		FixPath(L"../../Assets/Textures/sky/up.png").c_str(),
+		FixPath(L"../../Assets/Textures/sky/down.png").c_str(),
+		FixPath(L"../../Assets/Textures/sky/front.png").c_str(),
+		FixPath(L"../../Assets/Textures/sky/back.png").c_str());
+
+	entities = std::vector<GameEntity>();
+	entities.push_back(GameEntity(cubeMesh, tileMat));
+	entities.push_back(GameEntity(cylMesh, metalMat));
+	entities.push_back(GameEntity(helixMesh, tileMat));
+	entities.push_back(GameEntity(quadMesh, metalMat));
+	entities.push_back(GameEntity(doubleSidedQuadMesh, tileMat));
+	entities.push_back(GameEntity(sphereMesh, metalMat));
+	entities.push_back(GameEntity(torusMesh, tileMat));
+
+	entities[0].GetTransform()->SetPosition(-8.0f, +0.0f, +8.0f);
+	entities[1].GetTransform()->SetPosition(-5.0f, +0.0f, +8.0f);
+	entities[2].GetTransform()->SetPosition(-2.0f, +0.0f, +8.0f);
+	entities[3].GetTransform()->SetPosition(+0.0f, +0.0f, +8.0f);
+	entities[4].GetTransform()->SetPosition(+2.0f, +0.0f, +8.0f);
+	entities[5].GetTransform()->SetPosition(+5.0f, +0.0f, +8.0f);
+	entities[6].GetTransform()->SetPosition(+8.0f, +0.0f, +8.0f);
+}
 
 
 // --------------------------------------------------------
@@ -165,30 +236,13 @@ void Game::LoadShaders()
 // --------------------------------------------------------
 void Game::CreateGeometry()
 {
-	cubeMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/cube.obj").c_str(), device, context);
-	cylMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/cylinder.obj").c_str(), device, context);
-	helixMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/helix.obj").c_str(), device, context);
-	quadMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/quad.obj").c_str(), device, context);
-	doubleSidedQuadMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/quad_double_sided.obj").c_str(), device, context);
-	sphereMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/sphere.obj").c_str(), device, context);
-	torusMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/torus.obj").c_str(), device, context);
-
-	entities = std::vector<GameEntity>();
-	entities.push_back(GameEntity(cubeMesh, customMat));
-	entities.push_back(GameEntity(cylMesh, customMat));
-	entities.push_back(GameEntity(helixMesh, customMat));
-	entities.push_back(GameEntity(quadMesh, customMat));
-	entities.push_back(GameEntity(doubleSidedQuadMesh, customMat));
-	entities.push_back(GameEntity(sphereMesh, customMat));
-	entities.push_back(GameEntity(torusMesh, customMat));
-
-	entities[0].GetTransform()->SetPosition(-8.0f, +0.0f, +10.0f);
-	entities[1].GetTransform()->SetPosition(-5.0f, +0.0f, +10.0f);
-	entities[2].GetTransform()->SetPosition(-2.0f, +0.0f, +10.0f);
-	entities[3].GetTransform()->SetPosition(+0.0f, +0.0f, +10.0f);
-	entities[4].GetTransform()->SetPosition(+2.0f, +0.0f, +10.0f);
-	entities[5].GetTransform()->SetPosition(+5.0f, +0.0f, +10.0f);
-	entities[6].GetTransform()->SetPosition(+8.0f, +0.0f, +10.0f);
+	cubeMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/cube.obj").c_str(), device);
+	cylMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/cylinder.obj").c_str(), device);
+	helixMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/helix.obj").c_str(), device);
+	quadMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/quad.obj").c_str(), device);
+	doubleSidedQuadMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/quad_double_sided.obj").c_str(), device);
+	sphereMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/sphere.obj").c_str(), device);
+	torusMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/torus.obj").c_str(), device);
 }
 
 
@@ -300,10 +354,13 @@ void Game::Draw(float deltaTime, float totalTime)
 	}
 
 	for(GameEntity ge : entities) {
+		ge.GetMaterial()->PrepareMaterial();
 		ge.GetMaterial()->GetPixelShader()->SetFloat3("ambient", ambientColor);
 		ge.GetMaterial()->GetPixelShader()->SetData("lights", &lights[0], sizeof(Light) * (int)lights.size());
 		ge.Draw(context, &camera);
 	}
+
+	sky->Draw(camera);
 
 	// Frame END
 	// - These should happen exactly ONCE PER FRAME
