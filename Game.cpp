@@ -113,7 +113,7 @@ void Game::InitLights() {
 	lights[1] = {};
 	lights[1].Type = LIGHT_TYPE_DIRECTIONAL;
 	lights[1].Direction = XMFLOAT3(1, 0, 0);
-	lights[1].Color = XMFLOAT3(0.8f, 0.8f, 0.8f);
+	lights[1].Color = XMFLOAT3(1.0f, 1.0f, 1.0f);
 	lights[1].Intensity = 1.0f;
 
 	Light light3 = {};
@@ -159,7 +159,6 @@ void Game::LoadShaders()
 }
 
 void Game::LoadTextures() {
-	ambientColor = XMFLOAT3(0.5f, 0.2f, 0.5f);
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler;
 	D3D11_SAMPLER_DESC samplerDesc = {};
 	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -171,33 +170,55 @@ void Game::LoadTextures() {
 	device->CreateSamplerState(&samplerDesc, sampler.GetAddressOf());
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalSRV;
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/metalColor.jpg").c_str(), 0, metalSRV.GetAddressOf());
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalSpecSRV;
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/metalSpec.jpg").c_str(), 0, metalSpecSRV.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/floor_albedo.png").c_str(), 0, metalSRV.GetAddressOf());
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalNormalSRV;
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/metalNormal.jpg").c_str(), 0, metalNormalSRV.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/floor_normals.png").c_str(), 0, metalNormalSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalRoughnessSRV;
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/floor_roughness.png").c_str(), 0, metalRoughnessSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> metalMetalnessSRV;
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/floor_metal.png").c_str(), 0, metalMetalnessSRV.GetAddressOf());
 
 	metalMat = std::make_shared<Material>(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), vertexShader, pixelShader, 0.0f);
-	metalMat->AddTextureSRV("SurfaceTexture", metalSRV);
-	metalMat->AddTextureSRV("SpecularTexture", metalSpecSRV);
+	metalMat->AddTextureSRV("Albedo", metalSRV);
 	metalMat->AddTextureSRV("NormalMap", metalNormalSRV);
+	metalMat->AddTextureSRV("RoughnessMap", metalRoughnessSRV);
+	metalMat->AddTextureSRV("MetalnessMap", metalMetalnessSRV);
 	metalMat->AddSampler("BasicSampler", sampler);
 
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tileSRV;
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/tileColor.jpg").c_str(), 0, tileSRV.GetAddressOf());
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tileSpecSRV;
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/tileSpec.jpg").c_str(), 0, tileSpecSRV.GetAddressOf());
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tileNormalSRV;
-	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/tileNormal.jpg").c_str(), 0, tileNormalSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tilesSRV;
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/cobblestone_albedo.png").c_str(), 0, tilesSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tilesNormalSRV;
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/cobblestone_normals.png").c_str(), 0, tilesNormalSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tilesRoughnessSRV;
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/cobblestone_roughness.png").c_str(), 0, tilesRoughnessSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> tilesMetalnessSRV;
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/cobblestone_metal.png").c_str(), 0, tilesMetalnessSRV.GetAddressOf());
 
 	tileMat = std::make_shared<Material>(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), vertexShader, pixelShader, 0.0f);
-	tileMat->AddTextureSRV("SurfaceTexture", tileSRV);
-	tileMat->AddTextureSRV("SpecularTexture", tileSpecSRV);
-	tileMat->AddTextureSRV("NormalMap", tileNormalSRV);
+	tileMat->AddTextureSRV("Albedo", tilesSRV);
+	tileMat->AddTextureSRV("NormalMap", tilesNormalSRV);
+	tileMat->AddTextureSRV("RoughnessMap", tilesRoughnessSRV);
+	tileMat->AddTextureSRV("MetalnessMap", tilesMetalnessSRV);
 	tileMat->AddSampler("BasicSampler", sampler);
 
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> bronzeSRV;
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/bronze_albedo.png").c_str(), 0, tilesSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> bronzeNormalSRV;
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/bronze_normals.png").c_str(), 0, tilesNormalSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> bronzeRoughnessSRV;
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/bronze_roughness.png").c_str(), 0, tilesRoughnessSRV.GetAddressOf());
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> bronzeMetalnessSRV;
+	CreateWICTextureFromFile(device.Get(), context.Get(), FixPath(L"../../Assets/Textures/PBR/bronze_metal.png").c_str(), 0, tilesMetalnessSRV.GetAddressOf());
+
+	bronzeMat = std::make_shared<Material>(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), vertexShader, pixelShader, 0.0f);
+	bronzeMat->AddTextureSRV("Albedo", tilesSRV);
+	bronzeMat->AddTextureSRV("NormalMap", tilesNormalSRV);
+	bronzeMat->AddTextureSRV("RoughnessMap", tilesRoughnessSRV);
+	bronzeMat->AddTextureSRV("MetalnessMap", tilesMetalnessSRV);
+	bronzeMat->AddSampler("BasicSampler", sampler);
+
 	std::shared_ptr<SimpleVertexShader> skyVS = std::make_shared<SimpleVertexShader>(device, context, FixPath(L"SkyVertexShader.cso").c_str());
-	std::shared_ptr<SimplePixelShader> skyPS= std::make_shared<SimplePixelShader>(device, context, FixPath(L"SkyPixelShader.cso").c_str());
+	std::shared_ptr<SimplePixelShader> skyPS = std::make_shared<SimplePixelShader>(device, context, FixPath(L"SkyPixelShader.cso").c_str());
 	sky = std::make_shared<Sky>(
 		cubeMesh,
 		sampler,
@@ -205,19 +226,19 @@ void Game::LoadTextures() {
 		context,
 		skyPS,
 		skyVS,
-		FixPath(L"../../Assets/Textures/sky/right.png").c_str(),
-		FixPath(L"../../Assets/Textures/sky/left.png").c_str(),
-		FixPath(L"../../Assets/Textures/sky/up.png").c_str(),
-		FixPath(L"../../Assets/Textures/sky/down.png").c_str(),
-		FixPath(L"../../Assets/Textures/sky/front.png").c_str(),
-		FixPath(L"../../Assets/Textures/sky/back.png").c_str());
+		FixPath(L"../../Assets/Textures/Planet/right.png").c_str(),
+		FixPath(L"../../Assets/Textures/Planet/left.png").c_str(),
+		FixPath(L"../../Assets/Textures/Planet/up.png").c_str(),
+		FixPath(L"../../Assets/Textures/Planet/down.png").c_str(),
+		FixPath(L"../../Assets/Textures/Planet/front.png").c_str(),
+		FixPath(L"../../Assets/Textures/Planet/back.png").c_str());
 
 	entities = std::vector<GameEntity>();
 	entities.push_back(GameEntity(cubeMesh, tileMat));
-	entities.push_back(GameEntity(cylMesh, metalMat));
-	entities.push_back(GameEntity(helixMesh, tileMat));
-	entities.push_back(GameEntity(quadMesh, metalMat));
-	entities.push_back(GameEntity(doubleSidedQuadMesh, tileMat));
+	entities.push_back(GameEntity(cylMesh, bronzeMat));
+	entities.push_back(GameEntity(helixMesh, metalMat));
+	entities.push_back(GameEntity(quadMesh, tileMat));
+	entities.push_back(GameEntity(doubleSidedQuadMesh, bronzeMat));
 	entities.push_back(GameEntity(sphereMesh, metalMat));
 	entities.push_back(GameEntity(torusMesh, tileMat));
 
@@ -355,7 +376,6 @@ void Game::Draw(float deltaTime, float totalTime)
 
 	for(GameEntity ge : entities) {
 		ge.GetMaterial()->PrepareMaterial();
-		ge.GetMaterial()->GetPixelShader()->SetFloat3("ambient", ambientColor);
 		ge.GetMaterial()->GetPixelShader()->SetData("lights", &lights[0], sizeof(Light) * (int)lights.size());
 		ge.Draw(context, &camera);
 	}

@@ -51,9 +51,9 @@ private:
 	std::shared_ptr<SimpleVertexShader> vertexShader;
 
 	std::vector<Light> lights;
-	DirectX::XMFLOAT3 ambientColor;
 	std::shared_ptr<Material> metalMat;
 	std::shared_ptr<Material> tileMat;
+	std::shared_ptr<Material> bronzeMat;
 
 	std::shared_ptr<Mesh> cubeMesh;
 	std::shared_ptr<Mesh> cylMesh;
