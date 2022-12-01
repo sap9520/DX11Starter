@@ -35,6 +35,8 @@ private:
 	void LoadShaders();
 	void LoadTextures();
 	void CreateGeometry();
+	void CreateShadowResources();
+	void RenderShadowMap();
 
 	// Note the usage of ComPtr below
 	//  - This is a smart pointer for objects that abide by the
@@ -64,6 +66,13 @@ private:
 	std::shared_ptr<Mesh> torusMesh;
 
 	std::vector<GameEntity> entities;
+
+	// Shadow mapping variables
+	UINT shadowMapRes;
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> shadowTexture;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> shadowDSV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> shadowSRV;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> shadowRTV;
 
 	Camera camera;
 	std::shared_ptr<Sky> sky;

@@ -266,6 +266,24 @@ void Game::CreateGeometry()
 	torusMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/torus.obj").c_str(), device);
 }
 
+void Game::CreateShadowResources() {
+	shadowMapRes = 1024;
+
+	D3D11_TEXTURE2D_DESC shadowTextureDesc = {};
+	shadowTextureDesc.Width = shadowMapRes;
+	shadowTextureDesc.Height = shadowMapRes;
+	shadowTextureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+	shadowTextureDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+	device->CreateTexture2D(&shadowTextureDesc, 0, shadowTexture.GetAddressOf());
+
+	D3D11_DEPTH_STENCIL_VIEW_DESC shadowDSVDesc = {};
+	shadowDSVDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	device->CreateDepthStencilView(shadowTexture.Get(), &shadowDSVDesc, shadowDSV.GetAddressOf());
+	
+	D3D11_SHADER_RESOURCE_VIEW_DESC shadowSRVDesc = {};
+	shadowSRVDesc.Format = DXGI_FORMAT_R32_FLOAT;
+	device->CreateShaderResourceView(shadowTexture.Get(), &shadowSRVDesc, shadowSRV.GetAddressOf());
+}
 
 // --------------------------------------------------------
 // Handle resizing to match the new window size.
@@ -356,6 +374,23 @@ void Game::Update(float deltaTime, float totalTime)
 
 	camera.Update(deltaTime);
 }
+
+void Game::RenderShadowMap() {
+	context->OMSetRenderTargets(0, 0, shadowDSV.Get());
+	context->ClearDepthStencilView(depthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+	
+	D3D11_VIEWPORT vp = {};
+	vp.TopLeftX = 0;
+	vp.TopLeftY = 0;
+	vp.Width = shadowMapRes;
+	vp.Height = shadowMapRes;
+	context->RSSetViewports(1, &vp);
+
+	// set shadow vertex shader
+
+	context->PSSetShader(0, 0, 0);
+}
+
 
 // --------------------------------------------------------
 // Clear the screen, redraw everything, present to the user
