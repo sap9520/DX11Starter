@@ -387,6 +387,7 @@ void Game::RenderShadowMap() {
 	context->RSSetViewports(1, &vp);
 
 	// set shadow vertex shader
+	// TODO: ADD SHADOW VERTEX SHADER
 
 	context->PSSetShader(0, 0, 0);
 }
