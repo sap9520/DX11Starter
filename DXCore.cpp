@@ -390,82 +390,57 @@ HRESULT DXCore::InitDirect3D()
 // --------------------------------------------------------
 void DXCore::OnResize()
 {
-	// Resize the buffers that must match the window size
-	{
-		// Release the views before resizing the swap chain,
-		// as there cannot be any outstanding references to
-		// the back buffer before the resize operation
-		backBufferRTV.Reset();
-		depthBufferDSV.Reset();
+	// Wait for GPU to finish all work
+	DX12Helper::GetInstance().WaitForGPU();
 
-		// Resize the underlying swap chain buffers,
-		// which essentially destroys and recreates them
-		swapChain->ResizeBuffers(
-			2,
-			windowWidth,
-			windowHeight,
-			DXGI_FORMAT_R8G8B8A8_UNORM,
-			deviceSupportsTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0);
+	// Release back buffers sing ComPtr's Reset()
+	for (unsigned int i = 0; i < numBackBuffers; i++)
+		backBuffers[i].Reset();
+
+	// Resize swap chain
+	// Assumes basic color format
+	swapChain->ResizeBuffers(
+		numBackBuffers,
+		windowWidth,
+		windowHeight,
+		DXGI_FORMAT_R8G8B8A8_UNORM,
+		deviceSupportsTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0);
+
+	// Go through the steps to set up back buffers again
+	// Assumes descriptor heap already exists, rtvDescriptorSize was previously set
+	for (unsigned int i = 0; i < numBackBuffers; i++) {
+		// Grab this bufer from the swap chain
+		swapChain->GetBuffer(i, IID_PPV_ARGS(backBuffers[i].GetAddressOf()));
+
+		// Make handle for it
+		rtvHandles[i] = rtvHeap->GetCPUDescriptorHandleForHeapStart();
+		rtvHandles[i].ptr += rtvDescriptorSize * i;
+
+		// Create render target view
+		device->CreateRenderTargetView(backBuffers[i].Get(), 0, rtvHandles[i]);
 	}
 
-	// A new back buffer requires a new Render Target View
+	// Reset back to first back buffer
+	currentSwapBuffer = 0;
+
+	// Reset depth buffer, create it again
 	{
-		// Get the texture reference
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> backBufferTexture;
-		swapChain->GetBuffer(0,	__uuidof(ID3D11Texture2D), (void**)backBufferTexture.GetAddressOf());
+		depthStencilBuffer.Reset();
 
-		// Recreate the Render Target View for the back buffer texture
-		if (backBufferTexture != 0)
-		{
-			device->CreateRenderTargetView(backBufferTexture.Get(),	0, backBufferRTV.GetAddressOf());
-		}
+		// Describe the depth stencil buffer resource
+		D3D12_RESOURCE_DESC depthBufferDesc = {};
+		depthBufferDesc.Alignment = 0;
+		depthBufferDesc.DepthOrArraySize = 1;
+		depthBufferDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		depthBufferDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+		depthBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		depthBufferDesc.Height = windowHeight;
+		depthBufferDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		depthBufferDesc.MipLevels = 1;
+		depthBufferDesc.SampleDesc.Count = 1;
+		depthBufferDesc.SampleDesc.Quality = 0;
+		depthBufferDesc.Width = windowWidth;
 	}
-
-	// Since the window size changed, we need a new depth buffer too!
-	{
-		// Set up the description of the texture to use for the depth buffer
-		D3D11_TEXTURE2D_DESC depthStencilDesc = {};
-		depthStencilDesc.Width = windowWidth;
-		depthStencilDesc.Height = windowHeight;
-		depthStencilDesc.MipLevels = 1;
-		depthStencilDesc.ArraySize = 1;
-		depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
-		depthStencilDesc.Usage = D3D11_USAGE_DEFAULT;
-		depthStencilDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-		depthStencilDesc.CPUAccessFlags = 0;
-		depthStencilDesc.MiscFlags = 0;
-		depthStencilDesc.SampleDesc.Count = 1;
-		depthStencilDesc.SampleDesc.Quality = 0;
-
-		// Create the depth buffer texture resource
-		Microsoft::WRL::ComPtr<ID3D11Texture2D> depthBufferTexture;
-		device->CreateTexture2D(&depthStencilDesc, 0, depthBufferTexture.GetAddressOf());
-
-		// As long as the depth buffer texture was created successfully, 
-		// create the associated Depth Stencil View so we can use it for rendering
-		if (depthBufferTexture != 0)
-		{
-			device->CreateDepthStencilView(depthBufferTexture.Get(), 0,	depthBufferDSV.GetAddressOf());
-		}
-	}
-
-	// Bind the back buffer and depth buffer to the pipeline
-	// so these particular resources are used when rendering
-	context->OMSetRenderTargets(1, backBufferRTV.GetAddressOf(), depthBufferDSV.Get());
-
-	// Set up a viewport so we render into
-	// to correct portion of the window
-	D3D11_VIEWPORT viewport = {};
-	viewport.TopLeftX	= 0;
-	viewport.TopLeftY	= 0;
-	viewport.Width		= (float)windowWidth;
-	viewport.Height		= (float)windowHeight;
-	viewport.MinDepth	= 0.0f;
-	viewport.MaxDepth	= 1.0f;
-	context->RSSetViewports(1, &viewport);
-
-	// Are we in a fullscreen state?
- 	swapChain->GetFullscreenState(&isFullscreen, 0);
 }
 
 
