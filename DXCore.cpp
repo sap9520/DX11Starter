@@ -440,7 +440,53 @@ void DXCore::OnResize()
 		depthBufferDesc.SampleDesc.Count = 1;
 		depthBufferDesc.SampleDesc.Quality = 0;
 		depthBufferDesc.Width = windowWidth;
+
+		// Describe the clear value that will most often
+		// be used for this buffer
+		D3D12_CLEAR_VALUE clear = {};
+		clear.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		clear.DepthStencil.Depth = 1.0f;
+		clear.DepthStencil.Stencil = 0;
+
+		// Describe the memory heap that will house this resource
+		D3D12_HEAP_PROPERTIES props = {};
+		props.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+		props.CreationNodeMask = 1;
+		props.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+		props.Type = D3D12_HEAP_TYPE_DEFAULT;
+		props.VisibleNodeMask = 1;
+
+		// Create the resource and heap, and map the resource to that heap
+		device->CreateCommittedResource(
+			&props,
+			D3D12_HEAP_FLAG_NONE,
+			&depthBufferDesc,
+			D3D12_RESOURCE_STATE_DEPTH_WRITE,
+			&clear,
+			IID_PPV_ARGS(depthStencilBuffer.GetAddressOf()));
+
+		// Recreate the depth stencil view
+		dsvHandle = dsvHeap->GetCPUDescriptorHandleForHeapStart();
+		device->CreateDepthStencilView(
+			depthStencilBuffer.Get(),
+			0,		// Default view
+			dsvHandle);
 	}
+
+	// Recreate viewport and scissor rects
+	{
+		viewport.Width = (float)windowWidth;
+		viewport.Height = (float)windowHeight;
+
+		scissorRect.right = windowWidth;
+		scissorRect.bottom = windowHeight;
+	}
+
+	// Check if in fullscreen state
+	swapChain->GetFullscreenState(&isFullscreen, 0);
+	
+	// Wait for GPU before continuing
+	DX12Helper::GetInstance().WaitForGPU();
 }
 
 
@@ -564,6 +610,8 @@ void DXCore::UpdateTitleBarStats()
 	// Append the version of Direct3D the app is using
 	switch (dxFeatureLevel)
 	{
+	case D3D_FEATURE_LEVEL_12_1: output << "	DX	12.1"; break;
+	case D3D_FEATURE_LEVEL_12_0: output << "	DX	12.0"; break;
 	case D3D_FEATURE_LEVEL_11_1: output << "    D3D 11.1"; break;
 	case D3D_FEATURE_LEVEL_11_0: output << "    D3D 11.0"; break;
 	case D3D_FEATURE_LEVEL_10_1: output << "    D3D 10.1"; break;
