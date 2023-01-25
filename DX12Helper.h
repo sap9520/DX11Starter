@@ -23,7 +23,11 @@ public:
 
 private:
 	static DX12Helper* instance;
-	DX12Helper() {};
+	DX12Helper():
+		waitFence(0),
+		waitFenceCounter(0),
+		waitFenceEvent(0)
+	{};
 #pragma endregion
 
 public:

@@ -70,7 +70,7 @@ DXCore::DXCore(
 	perfCounterSeconds = 1.0 / (double)perfFreq;
 
 	dsvHandle = {};
-	rtvHandles = {};
+	rtvHandles[numBackBuffers] = {};
 	scissorRect = {};
 }
 

@@ -1,5 +1,9 @@
 #include "DX12Helper.h"
 
+DX12Helper::~DX12Helper()
+{
+}
+
 // --------------------------------------------------------
 // Sets up the helper with required DX12 objects
 // --------------------------------------------------------
