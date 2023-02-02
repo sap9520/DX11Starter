@@ -2,6 +2,8 @@
 #include "Vertex.h"
 #include "Input.h"
 #include "Helpers.h"
+#include "Mesh.h"
+#include "BufferStructs.h"
 
 // Needed for a helper function to load pre-compiled shader files
 #pragma comment(lib, "d3dcompiler.lib")
@@ -66,6 +68,13 @@ void Game::Init()
 	//  - You'll be expanding and/or replacing these later
 	CreateRootSigAndPipelineState();
 	CreateGeometry();
+
+	camera = std::make_shared<Camera>(
+		XMFLOAT3(0.0f, 0.0f, -5.0f),		// Position
+		5.0f,								// Move speed
+		0.002f,								// Look speed
+		XM_PIDIV4,							// Field of view
+		windowWidth / (float)windowHeight);	// Aspect ratio
 }
 
 // --------------------------------------------------------
@@ -86,36 +95,55 @@ void Game::CreateRootSigAndPipelineState()
 	}
 
 	// Input layout
-	const unsigned int inputElementCount = 2;
+	const unsigned int inputElementCount = 4;
 	D3D12_INPUT_ELEMENT_DESC inputElements[inputElementCount] = {};
 	{
-		// Create an input layout that describes the vertex format
-		// used by the vertex shader we're using
-		// - This is used by the pipeline to know how to interpret the raw data
-		// sitting inside a vertex buffer
-		
-		// Set up the first element - a position, which is 3 float values
 		inputElements[0].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-		inputElements[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
-		inputElements[0].SemanticName = "POSITION";
-		inputElements[0].SemanticIndex = 0;
+		inputElements[0].Format = DXGI_FORMAT_R32G32B32_FLOAT; // R32 G32 B32 = float3
+		inputElements[0].SemanticName = "POSITION"; // Name must match semantic in shader
+		inputElements[0].SemanticIndex = 0; // This is the first POSITION semantic
 
-		// Set up the second element - a color, which is 4 more float values
 		inputElements[1].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
-		inputElements[1].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-		inputElements[1].SemanticName = "COLOR";
-		inputElements[1].SemanticIndex = 0;
+		inputElements[1].Format = DXGI_FORMAT_R32G32_FLOAT; // R32 G32 = float2
+		inputElements[1].SemanticName = "TEXCOORD";
+		inputElements[1].SemanticIndex = 0; // This is the first TEXCOORD semantic
+
+		inputElements[2].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+		inputElements[2].Format = DXGI_FORMAT_R32G32B32_FLOAT; // R32 G32 B32 = float3
+		inputElements[2].SemanticName = "NORMAL";
+		inputElements[2].SemanticIndex = 0; // This is the first NORMAL semantic
+
+		inputElements[3].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+		inputElements[3].Format = DXGI_FORMAT_R32G32B32_FLOAT; // R32 G32 B32 = float3
+		inputElements[3].SemanticName = "TANGENT";
+		inputElements[3].SemanticIndex = 0; // This is the first TANGENT semantic
 	}
 
 	// Root Signature
 	{
-		// Describe and serialize the root signature
+		// Define a table of CBV's (constant buffer views)
+		D3D12_DESCRIPTOR_RANGE cbvTable = {};
+		cbvTable.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+		cbvTable.NumDescriptors = 1;
+		cbvTable.BaseShaderRegister = 0;
+		cbvTable.RegisterSpace = 0;
+		cbvTable.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+		// Define the root parameter
+		D3D12_ROOT_PARAMETER rootParam = {};
+		rootParam.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParam.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+		rootParam.DescriptorTable.NumDescriptorRanges = 1;
+		rootParam.DescriptorTable.pDescriptorRanges = &cbvTable;
+
+		// Describe the overall the root signature
 		D3D12_ROOT_SIGNATURE_DESC rootSig = {};
 		rootSig.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-		rootSig.NumParameters = 0;
-		rootSig.pParameters = 0;
+		rootSig.NumParameters = 1;
+		rootSig.pParameters = &rootParam;
 		rootSig.NumStaticSamplers = 0;
 		rootSig.pStaticSamplers = 0;
+
 		ID3DBlob* serializedRootSig = 0;
 		ID3DBlob* errors = 0;
 		D3D12SerializeRootSignature(
@@ -191,52 +219,37 @@ void Game::CreateRootSigAndPipelineState()
 // --------------------------------------------------------
 void Game::CreateGeometry()
 {
-	// Create some temporary variables to represent colors
-	// - Not necessary, just makes things more readable
-	XMFLOAT4 red	= XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
-	XMFLOAT4 green	= XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
-	XMFLOAT4 blue	= XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
+	std::shared_ptr<Mesh> cube = std::make_shared<Mesh>(FixPath(L"../../../../Assets/Models/cube.obj").c_str());
+	std::shared_ptr<Mesh> cylinder = std::make_shared<Mesh>(FixPath(L"../../../../Assets/Models/cylinder.obj").c_str());
+	std::shared_ptr<Mesh> helix = std::make_shared<Mesh>(FixPath(L"../../../../Assets/Models/helix.obj").c_str());
+	std::shared_ptr<Mesh> quad = std::make_shared<Mesh>(FixPath(L"../../../../Assets/Models/quad.obj").c_str());
+	std::shared_ptr<Mesh> quadDoubleSided = std::make_shared<Mesh>(FixPath(L"../../../../Assets/Models/quad_double_sided.obj").c_str());
+	std::shared_ptr<Mesh> sphere = std::make_shared<Mesh>(FixPath(L"../../../../Assets/Models/sphere.obj").c_str());
+	std::shared_ptr<Mesh> torus = std::make_shared<Mesh>(FixPath(L"../../../../Assets/Models/torus.obj").c_str());
 
-	// Set up the vertices of the triangle we would like to draw
-	// - We're going to copy this array, exactly as it exists in CPU memory
-	//    over to a Direct3D-controlled data structure on the GPU (the vertex buffer)
-	// - Note: Since we don't have a camera or really any concept of
-	//    a "3d world" yet, we're simply describing positions within the
-	//    bounds of how the rasterizer sees our screen: [-1 to +1] on X and Y
-	// - This means (0,0) is at the very center of the screen.
-	// - These are known as "Normalized Device Coordinates" or "Homogeneous 
-	//    Screen Coords", which are ways to describe a position without
-	//    knowing the exact size (in pixels) of the image/window/etc.  
-	// - Long story short: Resizing the window also resizes the triangle,
-	//    since we're describing the triangle in terms of the window itself
-	Vertex vertices[] =
-	{
-		{ XMFLOAT3(+0.0f, +0.5f, +0.0f), red },
-		{ XMFLOAT3(+0.5f, -0.5f, +0.0f), blue },
-		{ XMFLOAT3(-0.5f, -0.5f, +0.0f), green },
-	};
+	std::shared_ptr<GameEntity> cubeEntity = std::make_shared<GameEntity>(cube);
+	std::shared_ptr<GameEntity> cylinderEntity = std::make_shared<GameEntity>(cube);
+	std::shared_ptr<GameEntity> helixEntity = std::make_shared<GameEntity>(cube);
+	std::shared_ptr<GameEntity> quadEntity = std::make_shared<GameEntity>(cube);
+	std::shared_ptr<GameEntity> quadDoubleSidedEntity = std::make_shared<GameEntity>(cube);
+	std::shared_ptr<GameEntity> sphereEntity = std::make_shared<GameEntity>(cube);
+	std::shared_ptr<GameEntity> torusEntity = std::make_shared<GameEntity>(cube);
 
-	// Set up indices, which tell us which vertices to use and in which order
-	// - This is redundant for just 3 vertices, but will be more useful later
-	// - Indices are technically not required if the vertices are in the buffer 
-	//    in the correct order and each one will be used exactly once
-	// - But just to see how it's done...
-	unsigned int indices[] = { 0, 1, 2 };
+	quadEntity->GetTransform()->SetPosition(-9, 0, 0);
+	quadEntity->GetTransform()->SetPosition(-6, 0, 0);
+	quadEntity->GetTransform()->SetPosition(-3, 0, 0);
+	quadEntity->GetTransform()->SetPosition(0, 0, 0);
+	quadEntity->GetTransform()->SetPosition(3, 0, 0);
+	quadEntity->GetTransform()->SetPosition(6, 0, 0);
+	quadEntity->GetTransform()->SetPosition(9, 0, 0);
 
-
-	// Create vertex and index buffers
-	DX12Helper& dx12Helper = DX12Helper::GetInstance();
-	vertexBuffer = dx12Helper.CreateStaticBuffer(sizeof(Vertex), ARRAYSIZE(vertices), vertices);
-	indexBuffer = dx12Helper.CreateStaticBuffer(sizeof(unsigned int), ARRAYSIZE(indices), indices);
-
-	// Set up views
-	vbView.StrideInBytes = sizeof(Vertex);
-	vbView.SizeInBytes = sizeof(Vertex) * ARRAYSIZE(vertices);
-	vbView.BufferLocation = vertexBuffer->GetGPUVirtualAddress();
-
-	ibView.Format = DXGI_FORMAT_R32_UINT;
-	ibView.SizeInBytes = sizeof(unsigned int) * ARRAYSIZE(indices);
-	ibView.BufferLocation = indexBuffer->GetGPUVirtualAddress();
+	entities.push_back(cubeEntity);
+	entities.push_back(cylinderEntity);
+	entities.push_back(helixEntity);
+	entities.push_back(quadEntity);
+	entities.push_back(quadDoubleSidedEntity);
+	entities.push_back(sphereEntity);
+	entities.push_back(torusEntity);
 }
 
 
@@ -247,6 +260,8 @@ void Game::CreateGeometry()
 // --------------------------------------------------------
 void Game::OnResize()
 {
+	camera->UpdateProjectionMatrix((float)windowWidth / windowHeight);
+
 	// Handle base-level DX resize stuff
 	DXCore::OnResize();
 }
@@ -256,6 +271,8 @@ void Game::OnResize()
 // --------------------------------------------------------
 void Game::Update(float deltaTime, float totalTime)
 {
+	camera->Update(deltaTime);
+
 	// Example input checking: Quit if the escape key is pressed
 	if (Input::GetInstance().KeyDown(VK_ESCAPE))
 		Quit();
@@ -311,12 +328,36 @@ void Game::Draw(float deltaTime, float totalTime)
 		commandList->OMSetRenderTargets(1, &rtvHandles[currentSwapBuffer], true, &dsvHandle);
 		commandList->RSSetViewports(1, &viewport);
 		commandList->RSSetScissorRects(1, &scissorRect);
-		commandList->IASetVertexBuffers(0, 1, &vbView);
-		commandList->IASetIndexBuffer(&ibView);
+		// commandList->IASetVertexBuffers(0, 1, &vbView);
+		// commandList->IASetIndexBuffer(&ibView);
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap = DX12Helper::GetInstance().GetCBVSRVDescriptorHeap();
+		commandList->SetDescriptorHeaps(1, descriptorHeap.GetAddressOf());
+
+		for (auto& ge : entities) {
+			VertexShaderExternalData vsData = {};
+			vsData.world = ge->GetTransform()->GetWorldMatrix();
+			vsData.view = camera->GetView();
+			vsData.projection = camera->GetProjection();
+
+			D3D12_GPU_DESCRIPTOR_HANDLE handle = 
+				DX12Helper::GetInstance().FillNextConstantBufferAndGetGPUDescriptorHandle((void*)(&vsData), sizeof(VertexShaderExternalData));
+
+			commandList->SetGraphicsRootDescriptorTable(0, handle);
+
+			std::shared_ptr<Mesh> mesh = ge->GetMesh();
+			D3D12_VERTEX_BUFFER_VIEW vbView = mesh->GetVertexBuffer();
+			D3D12_INDEX_BUFFER_VIEW ibView = mesh->GetIndexBuffer();
+			commandList->IASetVertexBuffers(0, 1, &vbView);
+			commandList->IASetIndexBuffer(&ibView);
+
+			// Draw
+			commandList->DrawIndexedInstanced(mesh->GetIndexCount(), 1, 0, 0, 0);
+		}
+
 		// Draw
-		commandList->DrawIndexedInstanced(3, 1, 0, 0, 0);
+		// commandList->DrawIndexedInstanced(3, 1, 0, 0, 0);
 	}
 
 	// Present
