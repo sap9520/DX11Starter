@@ -219,29 +219,29 @@ void Game::CreateRootSigAndPipelineState()
 // --------------------------------------------------------
 void Game::CreateGeometry()
 {
-	std::shared_ptr<Mesh> cube = std::make_shared<Mesh>(FixPath(L"../../../../Assets/Models/cube.obj").c_str());
-	std::shared_ptr<Mesh> cylinder = std::make_shared<Mesh>(FixPath(L"../../../../Assets/Models/cylinder.obj").c_str());
-	std::shared_ptr<Mesh> helix = std::make_shared<Mesh>(FixPath(L"../../../../Assets/Models/helix.obj").c_str());
-	std::shared_ptr<Mesh> quad = std::make_shared<Mesh>(FixPath(L"../../../../Assets/Models/quad.obj").c_str());
-	std::shared_ptr<Mesh> quadDoubleSided = std::make_shared<Mesh>(FixPath(L"../../../../Assets/Models/quad_double_sided.obj").c_str());
-	std::shared_ptr<Mesh> sphere = std::make_shared<Mesh>(FixPath(L"../../../../Assets/Models/sphere.obj").c_str());
-	std::shared_ptr<Mesh> torus = std::make_shared<Mesh>(FixPath(L"../../../../Assets/Models/torus.obj").c_str());
+	std::shared_ptr<Mesh> cube = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/cube.obj").c_str());
+	std::shared_ptr<Mesh> cylinder = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/cylinder.obj").c_str());
+	std::shared_ptr<Mesh> helix = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/helix.obj").c_str());
+	std::shared_ptr<Mesh> quad = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/quad.obj").c_str());
+	std::shared_ptr<Mesh> quadDoubleSided = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/quad_double_sided.obj").c_str());
+	std::shared_ptr<Mesh> sphere = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/sphere.obj").c_str());
+	std::shared_ptr<Mesh> torus = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/torus.obj").c_str());
 
 	std::shared_ptr<GameEntity> cubeEntity = std::make_shared<GameEntity>(cube);
-	std::shared_ptr<GameEntity> cylinderEntity = std::make_shared<GameEntity>(cube);
-	std::shared_ptr<GameEntity> helixEntity = std::make_shared<GameEntity>(cube);
-	std::shared_ptr<GameEntity> quadEntity = std::make_shared<GameEntity>(cube);
-	std::shared_ptr<GameEntity> quadDoubleSidedEntity = std::make_shared<GameEntity>(cube);
-	std::shared_ptr<GameEntity> sphereEntity = std::make_shared<GameEntity>(cube);
-	std::shared_ptr<GameEntity> torusEntity = std::make_shared<GameEntity>(cube);
+	std::shared_ptr<GameEntity> cylinderEntity = std::make_shared<GameEntity>(cylinder);
+	std::shared_ptr<GameEntity> helixEntity = std::make_shared<GameEntity>(helix);
+	std::shared_ptr<GameEntity> quadEntity = std::make_shared<GameEntity>(quad);
+	std::shared_ptr<GameEntity> quadDoubleSidedEntity = std::make_shared<GameEntity>(quadDoubleSided);
+	std::shared_ptr<GameEntity> sphereEntity = std::make_shared<GameEntity>(sphere);
+	std::shared_ptr<GameEntity> torusEntity = std::make_shared<GameEntity>(torus);
 
-	quadEntity->GetTransform()->SetPosition(-9, 0, 0);
-	quadEntity->GetTransform()->SetPosition(-6, 0, 0);
-	quadEntity->GetTransform()->SetPosition(-3, 0, 0);
+	cubeEntity->GetTransform()->SetPosition(-9, 0, 0);
+	cylinderEntity->GetTransform()->SetPosition(-6, 0, 0);
+	helixEntity->GetTransform()->SetPosition(-3, 0, 0);
 	quadEntity->GetTransform()->SetPosition(0, 0, 0);
-	quadEntity->GetTransform()->SetPosition(3, 0, 0);
-	quadEntity->GetTransform()->SetPosition(6, 0, 0);
-	quadEntity->GetTransform()->SetPosition(9, 0, 0);
+	quadDoubleSidedEntity->GetTransform()->SetPosition(3, 0, 0);
+	sphereEntity->GetTransform()->SetPosition(6, 0, 0);
+	torusEntity->GetTransform()->SetPosition(9, 0, 0);
 
 	entities.push_back(cubeEntity);
 	entities.push_back(cylinderEntity);

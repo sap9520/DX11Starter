@@ -1,7 +1,7 @@
 #include "GameEntity.h"
 
 GameEntity::GameEntity(std::shared_ptr<Mesh> _mesh) :
-	mesh(mesh)
+	mesh(_mesh)
 {
 }
 
