@@ -273,6 +273,11 @@ void Game::Update(float deltaTime, float totalTime)
 {
 	camera->Update(deltaTime);
 
+	for (auto& e : entities) {
+		e->GetTransform()->Rotate(0, deltaTime, 0);
+		e->GetTransform()->MoveAbsolute(0, sin(totalTime) * 0.1f, 0);
+	}
+
 	// Example input checking: Quit if the escape key is pressed
 	if (Input::GetInstance().KeyDown(VK_ESCAPE))
 		Quit();
@@ -328,8 +333,6 @@ void Game::Draw(float deltaTime, float totalTime)
 		commandList->OMSetRenderTargets(1, &rtvHandles[currentSwapBuffer], true, &dsvHandle);
 		commandList->RSSetViewports(1, &viewport);
 		commandList->RSSetScissorRects(1, &scissorRect);
-		// commandList->IASetVertexBuffers(0, 1, &vbView);
-		// commandList->IASetIndexBuffer(&ibView);
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap = DX12Helper::GetInstance().GetCBVSRVDescriptorHeap();
@@ -355,9 +358,6 @@ void Game::Draw(float deltaTime, float totalTime)
 			// Draw
 			commandList->DrawIndexedInstanced(mesh->GetIndexCount(), 1, 0, 0, 0);
 		}
-
-		// Draw
-		// commandList->DrawIndexedInstanced(3, 1, 0, 0, 0);
 	}
 
 	// Present
