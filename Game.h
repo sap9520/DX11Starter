@@ -26,6 +26,7 @@ public:
 private:
 	// Initialization helper methods - feel free to customize, combine, remove, etc.
 	void CreateRootSigAndPipelineState();
+	void LoadTextures();
 	void CreateGeometry();
 
 	// Note the usage of ComPtr below
@@ -43,6 +44,9 @@ private:
 	D3D12_INDEX_BUFFER_VIEW ibView;
 
 	std::shared_ptr<Camera> camera;
+
+	std::shared_ptr<Material> bronzeMat;
+
 	std::vector<std::shared_ptr<GameEntity>> entities;
 };
 

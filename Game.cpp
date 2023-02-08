@@ -67,6 +67,7 @@ void Game::Init()
 	// geometry to draw and some simple camera matrices.
 	//  - You'll be expanding and/or replacing these later
 	CreateRootSigAndPipelineState();
+	LoadTextures();
 	CreateGeometry();
 
 	camera = std::make_shared<Camera>(
@@ -254,7 +255,23 @@ void Game::CreateRootSigAndPipelineState()
 	}
 }
 
+void Game::LoadTextures()
+{
+	DX12Helper& dx12Helper = DX12Helper::GetInstance();
 
+	bronzeMat = std::make_shared<Material>(pipelineState, XMFLOAT3(1, 1, 1), XMFLOAT2(1, 1), XMFLOAT2(0, 0));
+	D3D12_CPU_DESCRIPTOR_HANDLE bronzeAlbedo = dx12Helper.LoadTexture(FixPath(L"../../Assets/Textures/bronze_albedo.png").c_str());
+	D3D12_CPU_DESCRIPTOR_HANDLE bronzeNormals = dx12Helper.LoadTexture(FixPath(L"../../Assets/Textures/bronze_normals.png").c_str());
+	D3D12_CPU_DESCRIPTOR_HANDLE bronzeRoughness = dx12Helper.LoadTexture(FixPath(L"../../Assets/Textures/bronze_roughness.png").c_str());
+	D3D12_CPU_DESCRIPTOR_HANDLE bronzeMetal = dx12Helper.LoadTexture(FixPath(L"../../Assets/Textures/bronze_metal.png").c_str());
+
+	bronzeMat->AddTexture(bronzeAlbedo, 0);
+	bronzeMat->AddTexture(bronzeNormals, 1);
+	bronzeMat->AddTexture(bronzeRoughness, 2);
+	bronzeMat->AddTexture(bronzeMetal, 3);
+
+	bronzeMat->FinalizeMaterial();
+}
 
 // --------------------------------------------------------
 // Creates the geometry we're going to draw - a single triangle for now
@@ -269,13 +286,13 @@ void Game::CreateGeometry()
 	std::shared_ptr<Mesh> sphere = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/sphere.obj").c_str());
 	std::shared_ptr<Mesh> torus = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/torus.obj").c_str());
 
-	std::shared_ptr<GameEntity> cubeEntity = std::make_shared<GameEntity>(cube);
-	std::shared_ptr<GameEntity> cylinderEntity = std::make_shared<GameEntity>(cylinder);
-	std::shared_ptr<GameEntity> helixEntity = std::make_shared<GameEntity>(helix);
-	std::shared_ptr<GameEntity> quadEntity = std::make_shared<GameEntity>(quad);
-	std::shared_ptr<GameEntity> quadDoubleSidedEntity = std::make_shared<GameEntity>(quadDoubleSided);
-	std::shared_ptr<GameEntity> sphereEntity = std::make_shared<GameEntity>(sphere);
-	std::shared_ptr<GameEntity> torusEntity = std::make_shared<GameEntity>(torus);
+	std::shared_ptr<GameEntity> cubeEntity = std::make_shared<GameEntity>(cube, bronzeMat);
+	std::shared_ptr<GameEntity> cylinderEntity = std::make_shared<GameEntity>(cylinder, bronzeMat);
+	std::shared_ptr<GameEntity> helixEntity = std::make_shared<GameEntity>(helix, bronzeMat);
+	std::shared_ptr<GameEntity> quadEntity = std::make_shared<GameEntity>(quad, bronzeMat);
+	std::shared_ptr<GameEntity> quadDoubleSidedEntity = std::make_shared<GameEntity>(quadDoubleSided, bronzeMat);
+	std::shared_ptr<GameEntity> sphereEntity = std::make_shared<GameEntity>(sphere, bronzeMat);
+	std::shared_ptr<GameEntity> torusEntity = std::make_shared<GameEntity>(torus, bronzeMat);
 
 	cubeEntity->GetTransform()->SetPosition(-9, 0, 0);
 	cylinderEntity->GetTransform()->SetPosition(-6, 0, 0);
@@ -317,7 +334,7 @@ void Game::Update(float deltaTime, float totalTime)
 
 	for (auto& e : entities) {
 		e->GetTransform()->Rotate(0, deltaTime, 0);
-		e->GetTransform()->MoveAbsolute(0, sin(totalTime) * 0.1f, 0);
+		// e->GetTransform()->MoveAbsolute(0, sin(totalTime) * 0.1f, 0);
 	}
 
 	// Example input checking: Quit if the escape key is pressed
@@ -381,8 +398,12 @@ void Game::Draw(float deltaTime, float totalTime)
 		commandList->SetDescriptorHeaps(1, descriptorHeap.GetAddressOf());
 
 		for (auto& ge : entities) {
+			std::shared_ptr<Material> mat = ge->GetMaterial();
+			commandList->SetPipelineState(mat->GetPipelineState().Get());
+
 			VertexShaderExternalData vsData = {};
 			vsData.world = ge->GetTransform()->GetWorldMatrix();
+			vsData.worldInvTranspose = ge->GetTransform()->GetWorldInverseTransposeMatrix();
 			vsData.view = camera->GetView();
 			vsData.projection = camera->GetProjection();
 
@@ -390,6 +411,8 @@ void Game::Draw(float deltaTime, float totalTime)
 				DX12Helper::GetInstance().FillNextConstantBufferAndGetGPUDescriptorHandle((void*)(&vsData), sizeof(VertexShaderExternalData));
 
 			commandList->SetGraphicsRootDescriptorTable(0, handle);
+
+			commandList->SetGraphicsRootDescriptorTable(2, mat->GetFinalGPUHandle());
 
 			std::shared_ptr<Mesh> mesh = ge->GetMesh();
 			D3D12_VERTEX_BUFFER_VIEW vbView = mesh->GetVertexBuffer();

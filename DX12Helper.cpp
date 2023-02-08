@@ -333,7 +333,7 @@ D3D12_GPU_DESCRIPTOR_HANDLE DX12Helper::CopySRVsToDescriptorHeapAndGetGPUDescrip
 	return gpuHandle;
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE DX12Helper::LoadTexture(const wchar_t* file, bool generateMips = true)
+D3D12_CPU_DESCRIPTOR_HANDLE DX12Helper::LoadTexture(const wchar_t* file, bool generateMips)
 {
 	// Helper function for uploading a resource to appropriate GPU memory
 	ResourceUploadBatch upload(device.Get());

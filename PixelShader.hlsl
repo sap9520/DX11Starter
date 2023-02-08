@@ -12,7 +12,18 @@ struct VertexToPixel
 	//  |    |                |
 	//  v    v                v
 	float4 screenPosition	: SV_POSITION;
+	float2 uv				: TEXTCOORD;
+	float3 normal			: NORMAL;
+	float3 tangent			: TANGENT;
+	float3 worldPos			: POSITION;
 };
+
+
+Texture2D Albedo			: register(t0);
+Texture2D NormalMap			: register(t1);
+Texture2D RoughnessMap		: register(t2);
+Texture2D MetalnessMap		: register(t3);
+SamplerState BasicSampler	: register(s0);
 
 // --------------------------------------------------------
 // The entry point (main method) for our pixel shader
@@ -25,9 +36,7 @@ struct VertexToPixel
 // --------------------------------------------------------
 float4 main(VertexToPixel input) : SV_TARGET
 {
-	// Just return the input color
-	// - This color (like most values passing through the rasterizer) is 
-	//   interpolated for each pixel between the corresponding vertices 
-	//   of the triangle we're rendering
-	return float4(1, 1, 1, 1);
+	float4 color = Albedo.Sample(BasicSampler, input.uv);
+
+	return color;
 }

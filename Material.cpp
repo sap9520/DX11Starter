@@ -45,7 +45,7 @@ void Material::SetPipelineState(Microsoft::WRL::ComPtr<ID3D12PipelineState> _pip
 
 void Material::AddTexture(D3D12_CPU_DESCRIPTOR_HANDLE srv, int slot)
 {
-	if (finalized || slot < 4)
+	if (finalized || slot >= 4)
 		return;
 
 	textureSRVsBySlot[slot] = srv;
@@ -57,12 +57,13 @@ void Material::FinalizeMaterial()
 		return;
 
 	DX12Helper& dx12Helper = DX12Helper::GetInstance();
-	D3D12_GPU_DESCRIPTOR_HANDLE descHandle;
 
 	for (int i = 0; i < 4; i++) {
-		descHandle = dx12Helper.CopySRVsToDescriptorHeapAndGetGPUDescriptorHandle(textureSRVsBySlot[i], 1);
+		D3D12_GPU_DESCRIPTOR_HANDLE descHandle = dx12Helper.CopySRVsToDescriptorHeapAndGetGPUDescriptorHandle(textureSRVsBySlot[i], 1);
 
 		if (i == 0)
 			finalGPUHandleForSRVs = descHandle;
 	}
+
+	finalized = true;
 }
