@@ -1,3 +1,13 @@
+#include "Lights.h"
+
+cbuffer ExternalData : register(b0)
+{
+	float2 uvScale;
+	float2 uvOffset;
+	float3 cameraPos;
+	int lightCount;
+	Light lights[NUM_LIGHTS]
+}
 
 // Struct representing the data we expect to receive from earlier pipeline stages
 // - Should match the output of our corresponding vertex shader
@@ -17,7 +27,6 @@ struct VertexToPixel
 	float3 tangent			: TANGENT;
 	float3 worldPos			: POSITION;
 };
-
 
 Texture2D Albedo			: register(t0);
 Texture2D NormalMap			: register(t1);

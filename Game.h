@@ -3,6 +3,7 @@
 #include "DXCore.h"
 #include "Camera.h"
 #include "GameEntity.h"
+#include "Lights.h"
 #include <DirectXMath.h>
 #include <wrl/client.h> // Used for ComPtr - a smart pointer for COM objects
 #include <memory>
@@ -44,6 +45,7 @@ private:
 	D3D12_INDEX_BUFFER_VIEW ibView;
 
 	std::shared_ptr<Camera> camera;
+	std::vector<Light> lights;
 
 	std::shared_ptr<Material> bronzeMat;
 

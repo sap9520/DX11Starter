@@ -76,6 +76,15 @@ void Game::Init()
 		0.002f,								// Look speed
 		XM_PIDIV4,							// Field of view
 		windowWidth / (float)windowHeight);	// Aspect ratio
+
+	lights = std::vector<Light>();
+	Light dirLight = {};
+	dirLight.Type = LIGHT_TYPE_DIRECTIONAL;
+	dirLight.Direction = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	dirLight.Position = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	dirLight.Color = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	dirLight.Intensity = 1.0f;
+	lights.push_back(dirLight);
 }
 
 // --------------------------------------------------------
@@ -401,16 +410,28 @@ void Game::Draw(float deltaTime, float totalTime)
 			std::shared_ptr<Material> mat = ge->GetMaterial();
 			commandList->SetPipelineState(mat->GetPipelineState().Get());
 
+			// Vertex shader
 			VertexShaderExternalData vsData = {};
 			vsData.world = ge->GetTransform()->GetWorldMatrix();
 			vsData.worldInvTranspose = ge->GetTransform()->GetWorldInverseTransposeMatrix();
 			vsData.view = camera->GetView();
 			vsData.projection = camera->GetProjection();
 
-			D3D12_GPU_DESCRIPTOR_HANDLE handle = 
+			D3D12_GPU_DESCRIPTOR_HANDLE handleVS =
 				DX12Helper::GetInstance().FillNextConstantBufferAndGetGPUDescriptorHandle((void*)(&vsData), sizeof(VertexShaderExternalData));
+			commandList->SetGraphicsRootDescriptorTable(0, handleVS);
 
-			commandList->SetGraphicsRootDescriptorTable(0, handle);
+			// Pixel shader
+			PixelShaderExternalData psData = {};
+			psData.uvScale = mat->GetUVScale();
+			psData.uvOffset = mat->GetUVOffset();
+			psData.cameraPos = camera->GetTransform()->GetPosition();
+			psData.lightCount = 1;
+			memcpy(psData.lights, &lights[0], sizeof(Light) * NUM_LIGHTS);
+
+			D3D12_GPU_DESCRIPTOR_HANDLE handlePS =
+				DX12Helper::GetInstance().FillNextConstantBufferAndGetGPUDescriptorHandle((void*)(&psData), sizeof(PixelShaderExternalData));
+			commandList->SetGraphicsRootDescriptorTable(1, handlePS);
 
 			commandList->SetGraphicsRootDescriptorTable(2, mat->GetFinalGPUHandle());
 
