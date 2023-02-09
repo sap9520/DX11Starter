@@ -181,6 +181,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Lights.hlsli" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -99,5 +99,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Lights.hlsli" />
   </ItemGroup>
 </Project>

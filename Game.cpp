@@ -80,8 +80,7 @@ void Game::Init()
 	lights = std::vector<Light>();
 	Light dirLight = {};
 	dirLight.Type = LIGHT_TYPE_DIRECTIONAL;
-	dirLight.Direction = XMFLOAT3(1.0f, 1.0f, 1.0f);
-	dirLight.Position = XMFLOAT3(0.0f, 0.0f, 0.0f);
+	dirLight.Direction = XMFLOAT3(1.0f, -1.0f, 1.0f);
 	dirLight.Color = XMFLOAT3(1.0f, 1.0f, 1.0f);
 	dirLight.Intensity = 1.0f;
 	lights.push_back(dirLight);
@@ -280,6 +279,19 @@ void Game::LoadTextures()
 	bronzeMat->AddTexture(bronzeMetal, 3);
 
 	bronzeMat->FinalizeMaterial();
+
+	cobbleMat = std::make_shared<Material>(pipelineState, XMFLOAT3(1, 1, 1), XMFLOAT2(1, 1), XMFLOAT2(0, 0));
+	D3D12_CPU_DESCRIPTOR_HANDLE cobbleAlbedo = dx12Helper.LoadTexture(FixPath(L"../../Assets/Textures/cobblestone_albedo.png").c_str());
+	D3D12_CPU_DESCRIPTOR_HANDLE cobbleNormals = dx12Helper.LoadTexture(FixPath(L"../../Assets/Textures/cobblestone_normals.png").c_str());
+	D3D12_CPU_DESCRIPTOR_HANDLE cobbleRoughness = dx12Helper.LoadTexture(FixPath(L"../../Assets/Textures/cobblestone_roughness.png").c_str());
+	D3D12_CPU_DESCRIPTOR_HANDLE cobbleMetal = dx12Helper.LoadTexture(FixPath(L"../../Assets/Textures/cobblestone_metal.png").c_str());
+
+	cobbleMat->AddTexture(cobbleAlbedo, 0);
+	cobbleMat->AddTexture(cobbleNormals, 1);
+	cobbleMat->AddTexture(cobbleRoughness, 2);
+	cobbleMat->AddTexture(cobbleMetal, 3);
+
+	cobbleMat->FinalizeMaterial();
 }
 
 // --------------------------------------------------------
@@ -296,11 +308,11 @@ void Game::CreateGeometry()
 	std::shared_ptr<Mesh> torus = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/torus.obj").c_str());
 
 	std::shared_ptr<GameEntity> cubeEntity = std::make_shared<GameEntity>(cube, bronzeMat);
-	std::shared_ptr<GameEntity> cylinderEntity = std::make_shared<GameEntity>(cylinder, bronzeMat);
+	std::shared_ptr<GameEntity> cylinderEntity = std::make_shared<GameEntity>(cylinder, cobbleMat);
 	std::shared_ptr<GameEntity> helixEntity = std::make_shared<GameEntity>(helix, bronzeMat);
-	std::shared_ptr<GameEntity> quadEntity = std::make_shared<GameEntity>(quad, bronzeMat);
+	std::shared_ptr<GameEntity> quadEntity = std::make_shared<GameEntity>(quad, cobbleMat);
 	std::shared_ptr<GameEntity> quadDoubleSidedEntity = std::make_shared<GameEntity>(quadDoubleSided, bronzeMat);
-	std::shared_ptr<GameEntity> sphereEntity = std::make_shared<GameEntity>(sphere, bronzeMat);
+	std::shared_ptr<GameEntity> sphereEntity = std::make_shared<GameEntity>(sphere, cobbleMat);
 	std::shared_ptr<GameEntity> torusEntity = std::make_shared<GameEntity>(torus, bronzeMat);
 
 	cubeEntity->GetTransform()->SetPosition(-9, 0, 0);

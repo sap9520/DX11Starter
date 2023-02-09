@@ -48,6 +48,7 @@ private:
 	std::vector<Light> lights;
 
 	std::shared_ptr<Material> bronzeMat;
+	std::shared_ptr<Material> cobbleMat;
 
 	std::vector<std::shared_ptr<GameEntity>> entities;
 };
