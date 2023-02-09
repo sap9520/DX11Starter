@@ -76,9 +76,14 @@ float3 MicrofacetBRDF(float3 n, float3 l, float3 v, float roughness, float3 spec
 	return (D * F * G) / (4 * max(dot(n, v), dot(n, l)));
 }
 
-
 float3 DiffuseEnergyConserve(float3 diffuse, float3 specular, float metalness) {
 	return diffuse * ((1 - saturate(specular)) * (1 - metalness));
+}
+
+float Attenuate(Light light, float3 worldPos) {
+	float dist = distance(light.Position, worldPos);
+	float att = saturate(1.0f - (dist * dist / (light.Range * light.Range)));
+	return att * att;
 }
 
 // --------------------------------------------------------
@@ -113,15 +118,33 @@ float4 main(VertexToPixel input) : SV_TARGET
 	for (int i = 0; i < NUM_LIGHTS; i++) {
 		Light currentLight = lights[i];
 
-		// assuming only directional lights exist
-		float3 dirNormalized = normalize(-currentLight.Direction);
+		float3 dirNormalized;
+
+		switch (currentLight.Type) {
+		case LIGHT_TYPE_DIRECTIONAL:
+			dirNormalized = normalize(-currentLight.Direction);
+			break;
+		case LIGHT_TYPE_POINT:
+			dirNormalized = normalize(currentLight.Position - input.worldPos);
+			break;
+		}
 
 		float diffuse = DiffusePBR(input.normal, dirNormalized);
+
 		float3 toCam = normalize(cameraPos - input.worldPos);
 		float3 spec = MicrofacetBRDF(input.normal, dirNormalized, toCam, roughness, specColor);
+
 		float3 balancedDiff = DiffuseEnergyConserve(diffuse, spec, metalness);
 
-		total += (balancedDiff * color + spec) * currentLight.Intensity * currentLight.Color;
+		switch (currentLight.Type) {
+		case LIGHT_TYPE_DIRECTIONAL:
+			total += (balancedDiff * color + spec) * currentLight.Intensity * currentLight.Color;
+			break;
+		case LIGHT_TYPE_POINT:
+			total += ((balancedDiff * color + spec) * currentLight.Intensity * currentLight.Color)
+				* Attenuate(currentLight, input.worldPos);
+			break;
+		}
 	}
 
 	return float4(pow(total, 1.0f / 2.2f), 1.0f);
