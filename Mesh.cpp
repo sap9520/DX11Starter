@@ -1,5 +1,7 @@
 #include "Mesh.h"
 #include "DX12Helper.h"
+#include "RaytracingHelper.h"
+
 #include <DirectXMath.h>
 #include <vector>
 #include <fstream>
@@ -33,6 +35,7 @@ Mesh::Mesh(const wchar_t* objFile)
 	ibView = {};
 	vbView = {};
 	numIndices = 0;
+	numVertices = 0;
 
 	// File input object
 	std::ifstream obj(objFile);
@@ -201,6 +204,7 @@ Mesh::~Mesh() { }
 // Getters for private variables
 // --------------------------------------------------------
 unsigned int Mesh::GetIndexCount() { return numIndices; }
+unsigned int Mesh::GetVertexCount() { return numVertices; }
 
 
 // --------------------------------------------------------
@@ -231,8 +235,12 @@ void Mesh::CreateBuffers(Vertex* vertArray, size_t numVerts, unsigned int* index
 	ibView.SizeInBytes = sizeof(unsigned int) * numIndices;
 	ibView.BufferLocation = indexBuffer->GetGPUVirtualAddress();
 
+	// Create raytracing acceleration structure for this mesh
+	raytracingData = RaytracingHelper::GetInstance().CreateBottomLevelAccelerationStructureForMesh(this);
+
 	// Save the indices
 	this->numIndices = (unsigned int)numIndices;
+	this->numVertices = (unsigned int)numVerts;
 }
 
 // --------------------------------------------------------

@@ -369,3 +369,69 @@ D3D12_CPU_DESCRIPTOR_HANDLE DX12Helper::LoadTexture(const wchar_t* file, bool ge
 	// copy the descriptor to a shader-visible heap later
 	return cpuHandle;
 }
+
+// --------------------------------------------------------
+// Helper for creating a basic buffer
+// 
+// size      - How big should the buffer be in bytes
+// heapType  - What kind of D3D12 heap?  Default is D3D12_HEAP_TYPE_DEFAULT
+// state     - What state should the resulting resource be in?  Default is D3D12_RESOURCE_STATE_COMMON
+// flags     - Any special flags?  Default is D3D12_RESOURCE_FLAG_NONE
+// alignment - What's the buffer alignment?  Default is 0
+// --------------------------------------------------------
+Microsoft::WRL::ComPtr<ID3D12Resource> DX12Helper::CreateBuffer(
+	UINT64 size,
+	D3D12_HEAP_TYPE heapType,
+	D3D12_RESOURCE_STATES state,
+	D3D12_RESOURCE_FLAGS flags,
+	UINT64 alignment)
+{
+	Microsoft::WRL::ComPtr<ID3D12Resource> buffer;
+
+	// Heap description
+	D3D12_HEAP_PROPERTIES heapDesc = {};
+	heapDesc.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+	heapDesc.CreationNodeMask = 1;
+	heapDesc.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+	heapDesc.Type = heapType;
+	heapDesc.VisibleNodeMask = 1;
+
+	// Resource description
+	D3D12_RESOURCE_DESC desc = {};
+	desc.Alignment = alignment;
+	desc.DepthOrArraySize = 1;
+	desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	desc.Flags = flags;
+	desc.Format = DXGI_FORMAT_UNKNOWN;
+	desc.Height = 1;
+	desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	desc.MipLevels = 1;
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Width = size;
+
+	// Buffer creation
+	device->CreateCommittedResource(&heapDesc, D3D12_HEAP_FLAG_NONE, &desc, state, 0, IID_PPV_ARGS(buffer.GetAddressOf()));
+	return buffer;
+}
+
+void DX12Helper::ReserveSrvUavDescriptorHeapSlot(D3D12_CPU_DESCRIPTOR_HANDLE* reservedCPUHandle, D3D12_GPU_DESCRIPTOR_HANDLE* reservedGPUHandle)
+{
+	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = cbvSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = cbvSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+
+	cpuHandle.ptr += (SIZE_T)srvDescriptorOffset * cbvSrvDescriptorHeapIncrementSize;
+	gpuHandle.ptr += (SIZE_T)srvDescriptorOffset * cbvSrvDescriptorHeapIncrementSize;
+
+	// Set the requested handle(s)
+	if (reservedCPUHandle) { *reservedCPUHandle = cpuHandle; }
+	if (reservedGPUHandle) { *reservedGPUHandle = gpuHandle; }
+
+	// Update the overall offset
+	srvDescriptorOffset++;
+}
+
+Microsoft::WRL::ComPtr<ID3D12CommandAllocator> DX12Helper::GetDefaultAllocator()
+{
+	return commandAllocator;
+}
