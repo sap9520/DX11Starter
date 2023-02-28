@@ -67,7 +67,7 @@ float GeometricShadowing(float3 n, float3 v, float roughness) {
 }
 
 float3 MicrofacetBRDF(float3 n, float3 l, float3 v, float roughness, float3 specColor) {
-	float3 h = normalize(v + 1);
+	float3 h = normalize(v + l);
 
 	float D = SpecDistribution(n, h, roughness);
 	float3 F = Fresnel(v, h, specColor);
@@ -111,7 +111,7 @@ float4 main(VertexToPixel input) : SV_TARGET
 	float3 T = normalize(input.tangent - input.normal * dot(input.tangent, input.normal));
 	float3 B = cross(T, input.normal);
 	float3x3 TBN = float3x3(T, B, input.normal);
-	input.normal = mul(unpackedNormal, TBN);
+	input.normal = normalize(mul(unpackedNormal, TBN));
 
 	float3 total = float3(0, 0, 0);
 
