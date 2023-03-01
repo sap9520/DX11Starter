@@ -290,7 +290,7 @@ void Game::LoadTextures()
 
 	bronzeMat->FinalizeMaterial();
 
-	cobbleMat = std::make_shared<Material>(pipelineState, XMFLOAT3(1, 1, 1), XMFLOAT2(1, 1), XMFLOAT2(0, 0));
+	cobbleMat = std::make_shared<Material>(pipelineState, XMFLOAT3(0, 1, 1), XMFLOAT2(1, 1), XMFLOAT2(0, 0));
 	D3D12_CPU_DESCRIPTOR_HANDLE cobbleAlbedo = dx12Helper.LoadTexture(FixPath(L"../../Assets/Textures/cobblestone_albedo.png").c_str());
 	D3D12_CPU_DESCRIPTOR_HANDLE cobbleNormals = dx12Helper.LoadTexture(FixPath(L"../../Assets/Textures/cobblestone_normals.png").c_str());
 	D3D12_CPU_DESCRIPTOR_HANDLE cobbleRoughness = dx12Helper.LoadTexture(FixPath(L"../../Assets/Textures/cobblestone_roughness.png").c_str());
@@ -309,6 +309,10 @@ void Game::LoadTextures()
 // --------------------------------------------------------
 void Game::CreateGeometry()
 {
+	std::shared_ptr<Material> redMat = std::make_shared<Material>(pipelineState, XMFLOAT3(1, 0.1, 0.1), XMFLOAT2(1, 1), XMFLOAT2(0, 0));
+	std::shared_ptr<Material> greenMat = std::make_shared<Material>(pipelineState, XMFLOAT3(0.1, 1, 0.1), XMFLOAT2(1, 1), XMFLOAT2(0, 0));
+	std::shared_ptr<Material> blueMat = std::make_shared<Material>(pipelineState, XMFLOAT3(0.1, 0.1, 1), XMFLOAT2(1, 1), XMFLOAT2(0, 0));
+
 	std::shared_ptr<Mesh> cube = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/cube.obj").c_str());
 	std::shared_ptr<Mesh> cylinder = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/cylinder.obj").c_str());
 	std::shared_ptr<Mesh> helix = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/helix.obj").c_str());
@@ -317,29 +321,29 @@ void Game::CreateGeometry()
 	std::shared_ptr<Mesh> sphere = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/sphere.obj").c_str());
 	std::shared_ptr<Mesh> torus = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/torus.obj").c_str());
 
-	std::shared_ptr<GameEntity> cubeEntity = std::make_shared<GameEntity>(cube, bronzeMat);
-	std::shared_ptr<GameEntity> cylinderEntity = std::make_shared<GameEntity>(cylinder, cobbleMat);
-	std::shared_ptr<GameEntity> helixEntity = std::make_shared<GameEntity>(helix, bronzeMat);
-	std::shared_ptr<GameEntity> quadEntity = std::make_shared<GameEntity>(quad, cobbleMat);
-	std::shared_ptr<GameEntity> quadDoubleSidedEntity = std::make_shared<GameEntity>(quadDoubleSided, bronzeMat);
-	std::shared_ptr<GameEntity> sphereEntity = std::make_shared<GameEntity>(sphere, cobbleMat);
-	std::shared_ptr<GameEntity> torusEntity = std::make_shared<GameEntity>(torus, bronzeMat);
+	std::shared_ptr<GameEntity> cubeEntity = std::make_shared<GameEntity>(cube, blueMat);
+	std::shared_ptr<GameEntity> cylinderEntity = std::make_shared<GameEntity>(cylinder, redMat);
+	std::shared_ptr<GameEntity> cubeEntity2 = std::make_shared<GameEntity>(cube, blueMat);
+	std::shared_ptr<GameEntity> quadEntity = std::make_shared<GameEntity>(quad, redMat);
+	std::shared_ptr<GameEntity> helixEntity = std::make_shared<GameEntity>(helix, greenMat);
+	std::shared_ptr<GameEntity> helixEntity2 = std::make_shared<GameEntity>(helix, blueMat);
+	std::shared_ptr<GameEntity> sphereEntity = std::make_shared<GameEntity>(torus, greenMat);
 
 	cubeEntity->GetTransform()->SetPosition(-9, 0, 0);
 	cylinderEntity->GetTransform()->SetPosition(-6, 0, 0);
-	helixEntity->GetTransform()->SetPosition(-3, 0, 0);
+	cubeEntity2->GetTransform()->SetPosition(-3, 0, 0);
 	quadEntity->GetTransform()->SetPosition(0, 0, 0);
-	quadDoubleSidedEntity->GetTransform()->SetPosition(3, 0, 0);
-	sphereEntity->GetTransform()->SetPosition(6, 0, 0);
-	torusEntity->GetTransform()->SetPosition(9, 0, 0);
+	helixEntity->GetTransform()->SetPosition(3, 0, 0);
+	helixEntity2->GetTransform()->SetPosition(6, 0, 0);
+	sphereEntity->GetTransform()->SetPosition(9, 0, 0);
 
 	entities.push_back(cubeEntity);
 	entities.push_back(cylinderEntity);
-	entities.push_back(helixEntity);
+	entities.push_back(cubeEntity2);
 	entities.push_back(quadEntity);
-	entities.push_back(quadDoubleSidedEntity);
+	entities.push_back(helixEntity);
+	entities.push_back(helixEntity2);
 	entities.push_back(sphereEntity);
-	entities.push_back(torusEntity);
 
 	// Create TLAS
 	RaytracingHelper::GetInstance().CreateTopLevelAccelerationStructureForScene(entities);
@@ -501,6 +505,9 @@ void Game::Draw(float deltaTime, float totalTime)
 		swapChain->Present(
 			vsyncNecessary ? 1 : 0,
 			vsyncNecessary ? 0 : DXGI_PRESENT_ALLOW_TEARING);
+
+
+		DX12Helper::GetInstance().WaitForGPU();
 
 		// Figure out which buffer is next
 		currentSwapBuffer++;
