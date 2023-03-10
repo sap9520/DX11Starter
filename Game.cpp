@@ -385,8 +385,108 @@ void Game::Draw(float deltaTime, float totalTime)
 	// Grab the current back buffer for this frame
 	Microsoft::WRL::ComPtr<ID3D12Resource> currentBackBuffer = backBuffers[currentSwapBuffer];
 
-	// Draw and present
+	// Clear the render target
+	//{
+	//	// Transition the back buffer from present to render target
+	//	D3D12_RESOURCE_BARRIER rb = {};
+	//	rb.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+	//	rb.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+	//	rb.Transition.pResource = currentBackBuffer.Get();
+	//	rb.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+	//	rb.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	//	rb.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+	//	commandList->ResourceBarrier(1, &rb);
+
+	//	// Background color for clearing
+	//	float color[] = { 0.4f, 0.6f, 0.75f, 1.0f };
+
+	//	// Clear the RTV
+	//	commandList->ClearRenderTargetView(
+	//		rtvHandles[currentSwapBuffer],
+	//		color,
+	//		0, 0); // No scissor rectangles
+
+	//	// Clear the depth buffer
+	//	commandList->ClearDepthStencilView(
+	//		dsvHandle,
+	//		D3D12_CLEAR_FLAG_DEPTH,
+	//		1.0f, // Max depth = 1.0f
+	//		0,
+	//		0, 0); // No scissor rectangles
+	//}
+
+	// Render
+	//{
+	//	// Set overall pipeline state
+	//	commandList->SetPipelineState(pipelineState.Get());
+
+	//	// Set root signature
+	//	commandList->SetGraphicsRootSignature(rootSignature.Get());
+
+	//	// Set up other commands for rendering
+	//	commandList->OMSetRenderTargets(1, &rtvHandles[currentSwapBuffer], true, &dsvHandle);
+	//	commandList->RSSetViewports(1, &viewport);
+	//	commandList->RSSetScissorRects(1, &scissorRect);
+	//	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	//	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptorHeap = DX12Helper::GetInstance().GetCBVSRVDescriptorHeap();
+	//	commandList->SetDescriptorHeaps(1, descriptorHeap.GetAddressOf());
+
+	//	for (auto& ge : entities) {
+	//		std::shared_ptr<Material> mat = ge->GetMaterial();
+	//		commandList->SetPipelineState(mat->GetPipelineState().Get());
+
+	//		// Vertex shader
+	//		VertexShaderExternalData vsData = {};
+	//		vsData.world = ge->GetTransform()->GetWorldMatrix();
+	//		vsData.worldInvTranspose = ge->GetTransform()->GetWorldInverseTransposeMatrix();
+	//		vsData.view = camera->GetView();
+	//		vsData.projection = camera->GetProjection();
+
+	//		D3D12_GPU_DESCRIPTOR_HANDLE handleVS =
+	//			DX12Helper::GetInstance().FillNextConstantBufferAndGetGPUDescriptorHandle((void*)(&vsData), sizeof(VertexShaderExternalData));
+	//		commandList->SetGraphicsRootDescriptorTable(0, handleVS);
+
+	//		// Pixel shader
+	//		PixelShaderExternalData psData = {};
+	//		psData.uvScale = mat->GetUVScale();
+	//		psData.uvOffset = mat->GetUVOffset();
+	//		psData.cameraPos = camera->GetTransform()->GetPosition();
+	//		psData.lightCount = 1;
+	//		memcpy(psData.lights, &lights[0], sizeof(Light) * NUM_LIGHTS);
+
+	//		D3D12_GPU_DESCRIPTOR_HANDLE handlePS =
+	//			DX12Helper::GetInstance().FillNextConstantBufferAndGetGPUDescriptorHandle((void*)(&psData), sizeof(PixelShaderExternalData));
+	//		commandList->SetGraphicsRootDescriptorTable(1, handlePS);
+
+	//		commandList->SetGraphicsRootDescriptorTable(2, mat->GetFinalGPUHandle());
+
+	//		std::shared_ptr<Mesh> mesh = ge->GetMesh();
+	//		D3D12_VERTEX_BUFFER_VIEW vbView = mesh->GetVBView();
+	//		D3D12_INDEX_BUFFER_VIEW ibView = mesh->GetIBView();
+	//		commandList->IASetVertexBuffers(0, 1, &vbView);
+	//		commandList->IASetIndexBuffer(&ibView);
+
+	//		// Draw
+	//		commandList->DrawIndexedInstanced(mesh->GetIndexCount(), 1, 0, 0, 0);
+	//	}
+	//}
+
+	// Present
 	{
+		// Transition back to present
+		//D3D12_RESOURCE_BARRIER rb = {};
+		//rb.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+		//rb.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+		//rb.Transition.pResource = currentBackBuffer.Get();
+		//rb.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+		//rb.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+		//rb.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+		//commandList->ResourceBarrier(1, &rb);
+
+		//// Must occur before present
+		//DX12Helper::GetInstance().CloseExecuteAndResetCommandList();
+
 		commandAllocator->Reset();
 		commandList->Reset(commandAllocator.Get(), 0);
 
