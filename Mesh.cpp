@@ -219,10 +219,6 @@ unsigned int Mesh::GetVertexCount() { return numVertices; }
 // --------------------------------------------------------
 void Mesh::CreateBuffers(Vertex* vertArray, size_t numVerts, unsigned int* indexArray, size_t numIndices)
 {
-	// Save the indices and vertices
-	this->numIndices = (unsigned int)numIndices;
-	this->numVertices = (unsigned int)numVerts;
-
 	// Calculate the tangents of each vertex first
 	CalculateTangents(vertArray, numVerts, indexArray, numIndices);
 
@@ -241,6 +237,10 @@ void Mesh::CreateBuffers(Vertex* vertArray, size_t numVerts, unsigned int* index
 
 	// Create raytracing acceleration structure for this mesh
 	raytracingData = RaytracingHelper::GetInstance().CreateBottomLevelAccelerationStructureForMesh(this);
+
+	// Save the indices
+	this->numIndices = (unsigned int)numIndices;
+	this->numVertices = (unsigned int)numVerts;
 }
 
 // --------------------------------------------------------
