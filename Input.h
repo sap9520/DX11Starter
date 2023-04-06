@@ -37,8 +37,16 @@ public:
 	int GetMouseY();
 	int GetMouseXDelta();
 	int GetMouseYDelta();
+
+	void ProcessRawMouseInput(LPARAM input);
+	int GetRawMouseXDelta();
+	int GetRawMouseYDelta();
+
 	float GetMouseWheel();
 	void SetWheelDelta(float delta);
+
+	void SetKeyboardCapture(bool captured);
+	void SetMouseCapture(bool captured);
 
 	bool KeyDown(int key);
 	bool KeyUp(int key);
@@ -65,9 +73,6 @@ public:
 	bool MouseMiddlePress();
 	bool MouseMiddleRelease();
 
-	void SetKeyboardCapture(bool capture) { keyboardCaptured = capture; }
-	void SetMouseCapture(bool capture) { mouseCaptured = capture; }
-
 private:
 	// Arrays for the current and previous key states
 	unsigned char* kbState {0};
@@ -80,10 +85,13 @@ private:
 	int prevMouseY {0};
 	int mouseXDelta {0};
 	int mouseYDelta {0};
+	int rawMouseXDelta{ 0 };
+	int rawMouseYDelta{ 0 };
 	float wheelDelta {0};
 
-	bool keyboardCaptured;
-	bool mouseCaptured;
+	// Support for capturing input outside the input manager
+	bool keyboardCaptured {0};
+	bool mouseCaptured {0};
 
 	// The window's handle (id) from the OS, so
 	// we can get the cursor's position

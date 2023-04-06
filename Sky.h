@@ -1,56 +1,80 @@
 #pragma once
 
-#include "Mesh.h"
-#include "Camera.h"
-#include "SimpleShader.h"
-#include <d3d11.h>
-#include <wrl/client.h>
 #include <memory>
+
+#include "Mesh.h"
+#include "SimpleShader.h"
+#include "Camera.h"
+
+#include <wrl/client.h> // Used for ComPtr
+
 class Sky
 {
 public:
-	Sky(std::shared_ptr<Mesh> _mesh, 
-		Microsoft::WRL::ComPtr<ID3D11SamplerState> _sampler, 
-		Microsoft::WRL::ComPtr<ID3D11Device> _device,
-		Microsoft::WRL::ComPtr<ID3D11DeviceContext> _context,
-		std::shared_ptr<SimplePixelShader> _ps,
-		std::shared_ptr<SimpleVertexShader> _vs,
+
+	// Constructor that loads a DDS cube map file
+	Sky(
+		const wchar_t* cubemapDDSFile, 
+		std::shared_ptr<Mesh> mesh,
+		std::shared_ptr<SimpleVertexShader> skyVS,
+		std::shared_ptr<SimplePixelShader> skyPS,
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerOptions, 	
+		Microsoft::WRL::ComPtr<ID3D11Device> device,
+		Microsoft::WRL::ComPtr<ID3D11DeviceContext> context
+	);
+
+	// Constructor that takes an existing cube map SRV
+	Sky(
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cubeMap,
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerOptions,
+		Microsoft::WRL::ComPtr<ID3D11Device> device,
+		Microsoft::WRL::ComPtr<ID3D11DeviceContext> context
+	);
+
+	// Constructor that loads 6 textures and makes a cube map
+	Sky(
 		const wchar_t* right,
 		const wchar_t* left,
 		const wchar_t* up,
 		const wchar_t* down,
 		const wchar_t* front,
-		const wchar_t* back);
+		const wchar_t* back,
+		std::shared_ptr<Mesh> mesh,
+		std::shared_ptr<SimpleVertexShader> skyVS,
+		std::shared_ptr<SimplePixelShader> skyPS,
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerOptions,
+		Microsoft::WRL::ComPtr<ID3D11Device> device,
+		Microsoft::WRL::ComPtr<ID3D11DeviceContext> context
+	);
+
+	// Constructor that takes 6 existing SRVs and makes a cube map
+	Sky(
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> right,
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> left,
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> up,
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> down,
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> front,
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> back,
+		std::shared_ptr<Mesh> mesh,
+		std::shared_ptr<SimpleVertexShader> skyVS,
+		std::shared_ptr<SimplePixelShader> skyPS,
+		Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerOptions,
+		Microsoft::WRL::ComPtr<ID3D11Device> device,
+		Microsoft::WRL::ComPtr<ID3D11DeviceContext> context
+	);
+
 	~Sky();
 
-	void Draw(Camera cam);
+	void Draw(std::shared_ptr<Camera> camera);
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetIrradianceMap() { return irradianceCubeMap; }
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetConvolvedSpecularMap() { return convolvedCubeMap; }
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetBRDFLookUpTexture() { return brdfLookUpTexture; }
+	int GetNumSpecMipLevels() { return numSpecMipLevels; }
 
 private:
-	Microsoft::WRL::ComPtr<ID3D11Device> device;
-	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
 
-	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv;
-	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> depthBuffer;
-	Microsoft::WRL::ComPtr<ID3D11RasterizerState> rasterizer;
-	
-	std::shared_ptr<Mesh> mesh;
-	std::shared_ptr<SimplePixelShader> ps;
-	std::shared_ptr<SimpleVertexShader> vs;
-
-	// --------------------------------------------------------
-	// Author: Chris Cascioli
-	// Purpose: Creates a cube map on the GPU from 6 individual textures
-	// 
-	// - You are allowed to directly copy/paste this into your code base
-	//   for assignments, given that you clearly cite that this is not
-	//   code of your own design.
-	//
-	// - Note: This code assumes you’re putting the function in Game.cpp, 
-	//   you’ve included WICTextureLoader.h and you have an ID3D11Device 
-	//   ComPtr called “device”.  Make any adjustments necessary for
-	//   your own implementation.
-	// --------------------------------------------------------
+	void InitRenderStates();
 
 	// Helper for creating a cubemap from 6 individual textures
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CreateCubemap(
@@ -60,5 +84,42 @@ private:
 		const wchar_t* down,
 		const wchar_t* front,
 		const wchar_t* back);
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> CreateCubemap(
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> right,
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> left,
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> up,
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> down,
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> front,
+		Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> back);
+
+	// IBL related functions
+	void IBLCreateIrradianceMap();
+	void IBLCreateConvolvedSpecularMap();
+	void IBLCreateBRDFLookUpTexture();
+
+	// Skybox related resources
+	std::shared_ptr<SimpleVertexShader> skyVS;
+	std::shared_ptr<SimplePixelShader> skyPS;
+	
+	std::shared_ptr<Mesh> skyMesh;
+
+	Microsoft::WRL::ComPtr<ID3D11RasterizerState> skyRasterState;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> skyDepthState;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> skySRV;
+
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerOptions;
+	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
+	Microsoft::WRL::ComPtr<ID3D11Device> device;
+
+	// IBL related resources
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> irradianceCubeMap;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> convolvedCubeMap;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> brdfLookUpTexture;
+
+	int numSpecMipLevels;
+	const int SPEC_MIP_STEP = 3;
+	const int IBL_CUBE_FACE_SIZE = 256;
+	const int LOOKUP_TEXTURE_SIZE = 256;
 };
 

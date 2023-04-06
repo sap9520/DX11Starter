@@ -1,36 +1,37 @@
 #pragma once
 
-#include "Vertex.h"
 #include <d3d11.h>
 #include <wrl/client.h>
+#include <string>
+
+#include "Vertex.h"
+
+
 class Mesh
 {
 public:
-	Mesh(
-		Vertex* objArray,
-		int numVertices,
-		unsigned int* indices,
-		int numIndices,
-		Microsoft::WRL::ComPtr<ID3D11Device> bufferCreator);
-	Mesh(const wchar_t* filename, 
-		Microsoft::WRL::ComPtr<ID3D11Device> bufferCreator);
+	Mesh(Vertex* vertArray, size_t numVerts, unsigned int* indexArray, size_t numIndices, Microsoft::WRL::ComPtr<ID3D11Device> device);
+	Mesh(const std::wstring& objFile, Microsoft::WRL::ComPtr<ID3D11Device> device);
 	~Mesh();
 
+	// Getters for mesh data
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetVertexBuffer();
 	Microsoft::WRL::ComPtr<ID3D11Buffer> GetIndexBuffer();
-	int GetIndexCount();
-	void Draw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context);
-	void CalculateTangents(Vertex* verts, int numVerts, unsigned int* indices, int numIndices);
+	unsigned int GetIndexCount();
+
+	// Basic mesh drawing
+	void SetBuffersAndDraw(Microsoft::WRL::ComPtr<ID3D11DeviceContext> context);
 
 private:
-	Microsoft::WRL::ComPtr<ID3D11Buffer> vertexBuffer;
-	Microsoft::WRL::ComPtr<ID3D11Buffer> indexBuffer;
-	int numIndices;
+	// D3D buffers
+	Microsoft::WRL::ComPtr<ID3D11Buffer> vb;
+	Microsoft::WRL::ComPtr<ID3D11Buffer> ib;
 
-	void SetBufferData(Vertex* objArray,
-		int numVertices, 
-		unsigned int* indices,
-		int numIndices,
-		Microsoft::WRL::ComPtr<ID3D11Device> bufferCreator);
+	// Total indices in this mesh
+	unsigned int numIndices;
+
+	// Helper for creating buffers (in the event we add more constructor overloads)
+	void CreateBuffers(Vertex* vertArray, size_t numVerts, unsigned int* indexArray, size_t numIndices, Microsoft::WRL::ComPtr<ID3D11Device> device);
+	void CalculateTangents(Vertex* verts, size_t numVerts, unsigned int* indices, size_t numIndices);
 };
 

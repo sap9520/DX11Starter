@@ -1,34 +1,87 @@
 #pragma once
-
 #include <DirectXMath.h>
-#include "Input.h"
+
 #include "Transform.h"
+
+enum class CameraProjectionType
+{
+	Perspective,
+	Orthographic
+};
 
 class Camera
 {
 public:
-	Camera();
-	Camera(float aspectRatio, DirectX::XMFLOAT3 initialPos);
+	Camera(
+		DirectX::XMFLOAT3 position, 
+		float moveSpeed, 
+		float mouseLookSpeed, 
+		float fieldOfView, 
+		float aspectRatio, 
+		float nearClip = 0.01f, 
+		float farClip = 100.0f, 
+		CameraProjectionType projType = CameraProjectionType::Perspective);
 
-	DirectX::XMFLOAT4X4 GetViewMatrix();
-	DirectX::XMFLOAT4X4 GetProjectionMatrix();
-	Transform GetTransform();
+	Camera(
+		float x, float y, float z, 
+		float moveSpeed, 
+		float mouseLookSpeed, 
+		float fieldOfView,
+		float aspectRatio, 
+		float nearClip = 0.01f, 
+		float farClip = 100.0f, 
+		CameraProjectionType projType = CameraProjectionType::Perspective);
 
-	void UpdateProjectionMatrix(float aspectRatio);
-	void UpdateViewMatrix();
+	~Camera();
+
+	// Updating methods
 	void Update(float dt);
+	void UpdateViewMatrix();
+	void UpdateProjectionMatrix(float aspectRatio);
 
+	// Getters
+	DirectX::XMFLOAT4X4 GetView();
+	DirectX::XMFLOAT4X4 GetProjection();
+	Transform* GetTransform();
+	float GetAspectRatio();
+
+	float GetFieldOfView();
+	void SetFieldOfView(float fov);
+
+	float GetMovementSpeed();
+	void SetMovementSpeed(float speed);
+
+	float GetMouseLookSpeed();
+	void SetMouseLookSpeed(float speed);
+
+	float GetNearClip();
+	void SetNearClip(float distance);
+
+	float GetFarClip();
+	void SetFarClip(float distance);
+
+	float GetOrthographicWidth();
+	void SetOrthographicWidth(float width);
+
+	CameraProjectionType GetProjectionType();
+	void SetProjectionType(CameraProjectionType type);
 
 private:
-	Transform transform;
-	DirectX::XMFLOAT4X4 viewMat;
-	DirectX::XMFLOAT4X4 projectionMat;
+	// Camera matrices
+	DirectX::XMFLOAT4X4 viewMatrix;
+	DirectX::XMFLOAT4X4 projMatrix;
 
-	float fov;
-	float nearClipDist;
-	float farClipDist;
+	Transform transform;
+
 	float movementSpeed;
 	float mouseLookSpeed;
-	bool isPerspective;
+
+	float fieldOfView;
+	float aspectRatio;
+	float nearClip;
+	float farClip;
+	float orthographicWidth;
+
+	CameraProjectionType projectionType;
 };
 

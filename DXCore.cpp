@@ -1,10 +1,9 @@
 #include "DXCore.h"
 #include "Input.h"
-
 #include "ImGui/imgui.h"
-#include "ImGui/imgui_impl_dx11.h"
 #include "ImGui/imgui_impl_win32.h"
 
+#include <dxgi1_5.h>
 #include <WindowsX.h>
 #include <sstream>
 
@@ -45,6 +44,8 @@ DXCore::DXCore(
 	windowWidth(windowWidth),
 	windowHeight(windowHeight),
 	vsync(vsync),
+	isFullscreen(false),
+	deviceSupportsTearing(false),
 	titleBarStats(debugTitleBarStats),
 	dxFeatureLevel(D3D_FEATURE_LEVEL_11_0),
 	fpsTimeElapsed(0),
@@ -182,6 +183,22 @@ HRESULT DXCore::InitDirect3D()
 	deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
+	// Determine if screen tearing ("vsync off") is available
+	// - This is necessary due to variable refresh rate displays
+	Microsoft::WRL::ComPtr<IDXGIFactory5> factory;
+	if (SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(&factory))))
+	{
+		// Check for this specific feature (must use BOOL typedef here!)
+		BOOL tearingSupported = false;
+		HRESULT featureCheck = factory->CheckFeatureSupport(
+			DXGI_FEATURE_PRESENT_ALLOW_TEARING,
+			&tearingSupported,
+			sizeof(tearingSupported));
+
+		// Final determination of support
+		deviceSupportsTearing = SUCCEEDED(featureCheck) && tearingSupported;
+	}
+
 	// Create a description of how our swap
 	// chain should work
 	DXGI_SWAP_CHAIN_DESC swapDesc = {};
@@ -194,7 +211,7 @@ HRESULT DXCore::InitDirect3D()
 	swapDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	swapDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 	swapDesc.BufferUsage		= DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapDesc.Flags				= 0;
+	swapDesc.Flags				= deviceSupportsTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
 	swapDesc.OutputWindow		= hWnd;
 	swapDesc.SampleDesc.Count	= 1;
 	swapDesc.SampleDesc.Quality = 0;
@@ -313,7 +330,7 @@ void DXCore::OnResize()
 			windowWidth,
 			windowHeight,
 			DXGI_FORMAT_R8G8B8A8_UNORM,
-			0);
+			deviceSupportsTearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0);
 	}
 
 	// A new back buffer requires a new Render Target View
@@ -361,16 +378,19 @@ void DXCore::OnResize()
 	// so these particular resources are used when rendering
 	context->OMSetRenderTargets(1, backBufferRTV.GetAddressOf(), depthBufferDSV.Get());
 
-	// Lastly, set up a viewport so we render into
+	// Set up a viewport so we render into
 	// to correct portion of the window
 	D3D11_VIEWPORT viewport = {};
-	viewport.TopLeftX	= 0;
-	viewport.TopLeftY	= 0;
-	viewport.Width		= (float)windowWidth;
-	viewport.Height		= (float)windowHeight;
-	viewport.MinDepth	= 0.0f;
-	viewport.MaxDepth	= 1.0f;
+	viewport.TopLeftX = 0;
+	viewport.TopLeftY = 0;
+	viewport.Width = (float)windowWidth;
+	viewport.Height = (float)windowHeight;
+	viewport.MinDepth = 0.0f;
+	viewport.MaxDepth = 1.0f;
 	context->RSSetViewports(1, &viewport);
+
+	// Are we in a fullscreen state?
+	swapChain->GetFullscreenState(&isFullscreen, 0);
 }
 
 
@@ -558,6 +578,11 @@ void DXCore::CreateConsoleWindow(int bufferLines, int bufferColumns, int windowL
 // --------------------------------------------------------
 LRESULT DXCore::ProcessMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	// Forward declare ImGui's handler, then call it
+	extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam))
+		return true;
+
 	// Check the incoming message and handle any we care about
 	switch (uMsg)
 	{
@@ -599,16 +624,16 @@ LRESULT DXCore::ProcessMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPara
 	case WM_MOUSEWHEEL:
 		Input::GetInstance().SetWheelDelta(GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
 		return 0;
+
+	// Raw mouse input
+	case WM_INPUT:
+		Input::GetInstance().ProcessRawMouseInput(lParam);
+		break;
 	
 	// Is our focus state changing?
 	case WM_SETFOCUS:	hasFocus = true;	return 0;
 	case WM_KILLFOCUS:	hasFocus = false;	return 0;
 	case WM_ACTIVATE:	hasFocus = (LOWORD(wParam) != WA_INACTIVE); return 0;
-		
-	// Has a key been pressed?
-	case WM_CHAR:
-		ImGui::GetIO().AddInputCharacter((char)wParam);
-		return 0;
 	}
 
 	// Let Windows handle any messages we're not touching

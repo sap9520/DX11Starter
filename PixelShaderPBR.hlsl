@@ -45,7 +45,8 @@ struct VertexToPixel
 Texture2D Albedo			: register(t0);
 Texture2D NormalMap			: register(t1);
 Texture2D RoughnessMap		: register(t2);
-SamplerState BasicSampler		: register(s0);
+Texture2D MetalMap			: register(t3);
+SamplerState BasicSampler	: register(s0);
 
 
 // Entry point for this pixel shader
@@ -58,16 +59,19 @@ float4 main(VertexToPixel input) : SV_TARGET
 	// Apply the uv adjustments
 	input.uv = input.uv * uvScale + uvOffset;
 
-	// Normal mapping
+	// Sample various textures
 	input.normal = NormalMapping(NormalMap, BasicSampler, input.uv, input.normal, input.tangent);
-	
-	// Treating roughness as a pseduo-spec map here
 	float roughness = RoughnessMap.Sample(BasicSampler, input.uv).r;
-	float specPower = max(256.0f * (1.0f - roughness), 0.01f); // Ensure we never hit 0
-	
+	float metal = MetalMap.Sample(BasicSampler, input.uv).r;
+
 	// Gamma correct the texture back to linear space and apply the color tint
 	float4 surfaceColor = Albedo.Sample(BasicSampler, input.uv);
 	surfaceColor.rgb = pow(surfaceColor.rgb, 2.2) * colorTint;
+
+	// Specular color - Assuming albedo texture is actually holding specular color if metal == 1
+	// Note the use of lerp here - metal is generally 0 or 1, but might be in between
+	// because of linear texture sampling, so we want lerp the specular color to match
+	float3 specColor = lerp(F0_NON_METAL.rrr, surfaceColor.rgb, metal);
 
 	// Total color for this pixel
 	float3 totalColor = float3(0,0,0);
@@ -79,15 +83,15 @@ float4 main(VertexToPixel input) : SV_TARGET
 		switch (lights[i].Type)
 		{
 		case LIGHT_TYPE_DIRECTIONAL:
-			totalColor += DirLight(lights[i], input.normal, input.worldPos, cameraPosition, specPower, surfaceColor.rgb);
+			totalColor += DirLightPBR(lights[i], input.normal, input.worldPos, cameraPosition, roughness, metal, surfaceColor.rgb, specColor);
 			break;
 
 		case LIGHT_TYPE_POINT:
-			totalColor += PointLight(lights[i], input.normal, input.worldPos, cameraPosition, specPower, surfaceColor.rgb);
+			totalColor += PointLightPBR(lights[i], input.normal, input.worldPos, cameraPosition, roughness, metal, surfaceColor.rgb, specColor);
 			break;
 
 		case LIGHT_TYPE_SPOT:
-			totalColor += SpotLight(lights[i], input.normal, input.worldPos, cameraPosition, specPower, surfaceColor.rgb);
+			totalColor += SpotLightPBR(lights[i], input.normal, input.worldPos, cameraPosition, roughness, metal, surfaceColor.rgb, specColor);
 			break;
 		}
 	}
