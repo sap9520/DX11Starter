@@ -69,7 +69,7 @@ public:
 
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetIrradianceMap() { return irradianceCubeMap; }
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetConvolvedSpecularMap() { return convolvedCubeMap; }
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetBRDFLookUpTexture() { return brdfLookUpTexture; }
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetBRDFLookUpTexture() { return brdfLookUpMap; }
 	int GetNumSpecMipLevels() { return numSpecMipLevels; }
 
 private:
@@ -115,11 +115,11 @@ private:
 	// IBL related resources
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> irradianceCubeMap;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> convolvedCubeMap;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> brdfLookUpTexture;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> brdfLookUpMap;
 
 	int numSpecMipLevels;
 	const int SPEC_MIP_STEP = 3;
-	const int IBL_CUBE_FACE_SIZE = 256;
-	const int LOOKUP_TEXTURE_SIZE = 256;
+	const int IBL_CUBE_FACE_SIZE = 512;
+	const int LOOKUP_TEXTURE_SIZE = 512;
 };
 

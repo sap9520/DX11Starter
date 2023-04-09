@@ -144,9 +144,9 @@ static const float MIN_ROUGHNESS = 0.0000001f; // 6 zeros after decimal
 static const float PI = 3.14159265359f;
 static const float TWO_PI = PI * 2.0f;
 static const float PI_OVER_2 = PI / 2.0f;
-#define MAX_IBL_SAMPLES 4096 // Or fewer as necessary for performance
-#define IRRADIANCE_SAMPLE_STEP_PHI 0.025f // Or larger for performance
-#define IRRADIANCE_SAMPLE_STEP_THETA 0.025f // Or larger for performance
+#define MAX_IBL_SAMPLES					4096 // Or fewer as necessary for performance
+#define IRRADIANCE_SAMPLE_STEP_PHI		0.025f // Or larger for performance
+#define IRRADIANCE_SAMPLE_STEP_THETA	0.025f // Or larger for performance
 
 // Lambert diffuse BRDF - Same as the basic lighting!
 float DiffusePBR(float3 normal, float3 dirToLight)
@@ -242,7 +242,7 @@ float3 MicrofacetBRDF(float3 n, float3 l, float3 v, float roughness, float metal
 //
 // Metals should have an albedo of (0,0,0)...mostly
 // See slide 65: http://blog.selfshadow.com/publications/s2014-shading-course/hoffman/s2014_pbs_physics_math_slides.pdf
-float3 DiffuseEnergyConserve(float diffuse, float3 specular, float metalness)
+float3 DiffuseEnergyConserve(float3 diffuse, float3 specular, float metalness)
 {
 	return diffuse * ((1 - saturate(specular)) * (1 - metalness));
 }
@@ -284,11 +284,14 @@ float3 IndirectSpecular(TextureCube envMap, int mips, Texture2D brdfLookUp, Samp
 {
 	// Ensure roughness isn't zero
 	roughness = max(roughness, MIN_ROUGHNESS);
+
 	// Calculate half of the split-sum approx (this texture is not gamma-corrected, as it just holds raw data)
 	float2 indirectBRDF = brdfLookUp.Sample(samp, float2(NdotV, roughness)).rg;
 	float3 indSpecFresnel = specColor * indirectBRDF.x + indirectBRDF.y; // Spec color is f0
+
 	// Sample the convolved environment map (other half of split-sum)
 	float3 envSample = envMap.SampleLevel(samp, viewRefl, roughness * (mips - 1)).rgb;
+
 	// Adjust environment sample by fresnel
 	return pow(abs(envSample), 2.2) * indSpecFresnel;
 }
@@ -362,16 +365,20 @@ float2 Hammersley2d(uint i, uint N) {
 float3 ImportanceSampleGGX(float2 Xi, float roughness, float3 N)
 {
 	float a = roughness * roughness;
+
 	float Phi = 2 * PI * Xi.x;
 	float CosTheta = sqrt((1 - Xi.y) / (1 + (a * a - 1) * Xi.y));
 	float SinTheta = sqrt(1 - CosTheta * CosTheta);
+	
 	float3 H;
 	H.x = SinTheta * cos(Phi);
 	H.y = SinTheta * sin(Phi);
 	H.z = CosTheta;
+	
 	float3 UpVector = abs(N.z) < 0.999f ? float3(0, 0, 1) : float3(1, 0, 0);
 	float3 TangentX = normalize(cross(UpVector, N));
 	float3 TangentY = cross(N, TangentX);
+	
 	// Tangent to world space
 	return TangentX * H.x + TangentY * H.y + N * H.z;
 }
