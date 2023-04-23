@@ -30,6 +30,14 @@ cbuffer perFrame : register(b1)
 	int specIBLTotalMipLevels;
 };
 
+// Output to multiple render targets
+struct PS_OUTPUT
+{
+	float4 colorNoAmbient	: SV_TARGET0;
+	float4 ambientColor		: SV_TARGET1;
+	float4 normals			: SV_TARGET2;
+	float depths			: SV_TARGET3;
+};
 
 // Defines the input to this pixel shader
 // - Should match the output of our corresponding vertex shader
@@ -60,7 +68,7 @@ SamplerState ClampSampler	: register(s1);
 
 
 // Entry point for this pixel shader
-float4 main(VertexToPixel input) : SV_TARGET
+PS_Output main(VertexToPixel input)
 {
 	// Always re-normalize interpolated direction vectors
 	input.normal = normalize(input.normal);
@@ -117,10 +125,16 @@ float4 main(VertexToPixel input) : SV_TARGET
 
 	// Balance indirect diffuse and spec
 	float3 balancedDiff = DiffuseEnergyConserve(indirectDiffuse, specColor, metal);
-	float3 fullIndirect = indirectSpecular + balancedDiff * surfaceColor.rgb;
+	// float3 fullIndirect = indirectSpecular + balancedDiff * surfaceColor.rgb;
 
 	totalColor += fullIndirect;
 
-	// Gamma correction
-	return float4(pow(totalColor, 1.0f / 2.2f), 1);
+	// SSAO shader information
+	PS_Output output;
+	output.colorNoAmbient = float4(pow(totalColor + indirectSpecular, 1.0f / 2.2f) 1);
+	output.ambientColor = float4(pow(balancedDiff, 1.0f / 2.2f), 1);
+	output.normals = float4(input.normal * 0.5f + 0.5f, 1);
+	output.depths = input.screenPosition.z;
+
+	return output;
 }

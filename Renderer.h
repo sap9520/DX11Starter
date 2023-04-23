@@ -72,6 +72,11 @@ public:
 		int lightCount,
 		std::shared_ptr<Camera> camera);
 
+	void CreateRenderTarget(unsigned int width,
+							unsigned int height, 
+							Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtv, 
+							Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv);
+
 private:
 	Microsoft::WRL::ComPtr<ID3D11Device> device;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;
@@ -80,5 +85,27 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthBufferDSV;
 	unsigned int windowWidth;
 	unsigned int windowHeight;
+
+	// SSAO - related variables
+	DirectX::XMFLOAT4 ssaoOffsets[64];
+
+	// Render targets
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> sceneColorsRTV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> sceneColorsSRV;
+
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> ambientColorsRTV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> ambientColorsSRV;
+
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> depthsRTV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> depthsSRV;
+
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> normalsRTV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> normalsSRV;
+
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> ssaoOutputRTV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> ssaoOutputSRV;
+
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> ssaoBlurredRTV;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> ssaoBlurredSRV;
 };
 
