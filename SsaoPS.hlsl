@@ -1,6 +1,5 @@
 
-// Data that only changes once per frame
-cbuffer perFrame : register(b1)
+cbuffer externalData : register(b0)
 {
 	matrix viewMatrix;
 	matrix projMatrix;
@@ -10,6 +9,12 @@ cbuffer perFrame : register(b1)
 	float ssaoRadius;
 	int ssaoSamples; // has to be less than offset array size
 	float2 randomTextureScreenScale;
+};
+
+struct VertexToPixel
+{
+	float4 screenPosition	: SV_POSITION;
+	float2 uv				: TEXCOORD;
 };
 
 // Texture - related variables
@@ -45,7 +50,7 @@ float2 UVFromViewSpacePosition(float3 viewSpacePos)
 	return samplePosScreen.xy;
 }
 
-float4 main() : SV_TARGET
+float4 main(VertexToPixel input) : SV_TARGET
 {
 	// Sample depth, give early out if skybox
 	float4 pixelDepth = Depths.Sample(ClampSampler, input.uv).r;
