@@ -31,7 +31,7 @@ cbuffer perFrame : register(b1)
 };
 
 // Output to multiple render targets
-struct PS_OUTPUT
+struct PS_Output
 {
 	float4 colorNoAmbient	: SV_TARGET0;
 	float4 ambientColor		: SV_TARGET1;
@@ -127,11 +127,11 @@ PS_Output main(VertexToPixel input)
 	float3 balancedDiff = DiffuseEnergyConserve(indirectDiffuse, specColor, metal);
 	// float3 fullIndirect = indirectSpecular + balancedDiff * surfaceColor.rgb;
 
-	totalColor += fullIndirect;
+	// totalColor += fullIndirect;
 
 	// SSAO shader information
 	PS_Output output;
-	output.colorNoAmbient = float4(pow(totalColor + indirectSpecular, 1.0f / 2.2f) 1);
+	output.colorNoAmbient = float4(pow(totalColor + indirectSpecular, 1.0f / 2.2f), 1);
 	output.ambientColor = float4(pow(balancedDiff, 1.0f / 2.2f), 1);
 	output.normals = float4(input.normal * 0.5f + 0.5f, 1);
 	output.depths = input.screenPosition.z;

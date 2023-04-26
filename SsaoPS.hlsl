@@ -34,14 +34,14 @@ float3 ViewSpaceFromDepth(float depth, float2 uv)
 	uv = uv * 2.0f - 1.0f;
 	float4 screenPos = float4(uv, depth, 1.0f);
 
-	float4 viewPos = mul(invProjMatrix.screenPos);
+	float4 viewPos = mul(inverseProjMatrix, screenPos);
 	return viewPos.xyz / viewPos.w;
 }
 
 // Gets the UV coordinates at a given view space coordinate
 float2 UVFromViewSpacePosition(float3 viewSpacePos)
 {
-	float4 samplePosScreen = mul(projMatrix, float4(viewSpacePostion, 1));
+	float4 samplePosScreen = mul(projMatrix, float4(viewSpacePos, 1));
 	samplePosScreen.xyz /= samplePosScreen.w;
 
 	samplePosScreen.xy = samplePosScreen.xy * 0.5f + 0.5f;
@@ -53,7 +53,7 @@ float2 UVFromViewSpacePosition(float3 viewSpacePos)
 float4 main(VertexToPixel input) : SV_TARGET
 {
 	// Sample depth, give early out if skybox
-	float4 pixelDepth = Depths.Sample(ClampSampler, input.uv).r;
+	float pixelDepth = Depths.Sample(ClampSampler, input.uv).r;
 	if (pixelDepth == 1.0f)
 		return float4(1, 1, 1, 1);
 
@@ -69,9 +69,10 @@ float4 main(VertexToPixel input) : SV_TARGET
 
 	// Loop and check nearby pixels for occulders
 	float ao = 0.0f;
-	for (in ti = 0; i < ssaoSamples; i++) {
-		float3 sampleViewPos = pixelPosViewSpace + mul(offsets[i].xyz, TBN) * ssaoRadius;
-		float2 samplePosScreen = UVFromViewSpacePosition(sampleViewPos);
+	for (int i = 0; i < ssaoSamples; i++)
+	{
+		float3 samplePosView = pixelPosViewSpace + mul(offsets[i].xyz, TBN) * ssaoRadius;
+		float2 samplePosScreen = UVFromViewSpacePosition(samplePosView);
 
 		// Sample the nearby depth and convert to view space
 		float sampleDepth = Depths.SampleLevel(ClampSampler, samplePosScreen.xy, 0).r;
@@ -80,9 +81,9 @@ float4 main(VertexToPixel input) : SV_TARGET
 		// Compare depths and fade result based on range
 		float rangeCheck = smoothstep(0.0f, 1.0f, ssaoRadius / abs(pixelPosViewSpace.z - sampleZ));
 		ao += (sampleZ < samplePosView.z ? rangeCheck : 0.0f);
-
-		// Average results and flip
-		ao = 1.0f - ao / ssaoSamples;
-		return float4(ao.rrr, 1);
 	}
+
+	// Average results and flip
+	ao = 1.0f - ao / ssaoSamples;
+	return float4(ao.rrr, 1);
 }

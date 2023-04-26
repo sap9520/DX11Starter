@@ -16,9 +16,9 @@ SamplerState BasicSampler		: register(s0);
 float4 main(VertexToPixel input) : SV_TARGET
 {
 	// Sample textures
-	float3 sceneColors = SceneColorsNoAmbient.Sample(BasicSamper, input.uv).rgb;
+	float3 sceneColors = SceneColorsNoAmbient.Sample(BasicSampler, input.uv).rgb;
 	float3 ambient = Ambient.Sample(BasicSampler, input.uv).rgb;
-	float ao = SSAOBlue.Sample(BasicSampler, input.uv).r;
+	float ao = SSAOBlur.Sample(BasicSampler, input.uv).r;
 
 	// Combine
 	return float4(ambient * ao + sceneColors, 1);

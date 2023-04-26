@@ -1,9 +1,13 @@
 #include "Renderer.h"
+#include "SimpleShader.h"
+#include "Helpers.h"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_dx11.h"
 #include "ImGui/imgui_impl_win32.h"
 
 using namespace DirectX;
+
+#define LoadShader(type, file) std::make_shared<type>(device.Get(), context.Get(), FixPath(file).c_str())
 
 Renderer* Renderer::instance;
 
@@ -110,12 +114,12 @@ void Renderer::FrameStart()
 	const float bgColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; // Black
 	context->ClearRenderTargetView(backBufferRTV.Get(), bgColor);
 
-	context->ClearRenderTargetView(sceneColorsRTV.Get(), bgColor);
+	/*context->ClearRenderTargetView(sceneColorsRTV.Get(), bgColor);
 	context->ClearRenderTargetView(ambientColorsRTV.Get(), bgColor);
 	context->ClearRenderTargetView(depthsRTV.Get(), bgColor);
 	context->ClearRenderTargetView(normalsRTV.Get(), bgColor);
 	context->ClearRenderTargetView(ssaoOutputRTV.Get(), bgColor);
-	context->ClearRenderTargetView(ssaoBlurredRTV.Get(), bgColor);
+	context->ClearRenderTargetView(ssaoBlurredRTV.Get(), bgColor);*/
 
 	// Clear the depth buffer (resets per-pixel occlusion information)
 	context->ClearDepthStencilView(depthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -178,6 +182,64 @@ void Renderer::RenderScene(
 
 	// Draw the sky
 	sky->Draw(camera);
+
+	// Get SSAO results
+	targets[0] = ssaoOutputRTV.Get();
+	targets[1] = 0;
+	targets[2] = 0;
+	targets[3] = 0;
+	context->OMSetRenderTargets(4, targets, depthBufferDSV.Get());
+
+	std::shared_ptr<SimpleVertexShader> vs = LoadShader(SimpleVertexShader, L"FullscreenVS.cso");
+	std::shared_ptr<SimplePixelShader> ps = LoadShader(SimplePixelShader, L"SsaoPS.cso");
+	vs->SetShader();
+	ps->SetShader();
+
+
+	ps->SetShaderResourceView("Normals", normalsSRV);
+	ps->SetShaderResourceView("Depths", depthsSRV);
+	// ps->SetShaderResourceView("Random", random);
+
+	XMFLOAT4X4 inverseProj, proj = camera->GetProjection();
+	XMStoreFloat4x4(&inverseProj, XMMatrixInverse(0, XMLoadFloat4x4(&proj)));
+	ps->SetMatrix4x4("viewMatrix", camera->GetView());
+	ps->SetMatrix4x4("projMatrix", proj);
+	ps->SetMatrix4x4("inverseProjMatrix", inverseProj);
+	ps->SetData("offsets", ssaoOffsets, sizeof(XMFLOAT4) * ARRAYSIZE(ssaoOffsets));
+	ps->SetFloat("ssaoRadius", 10);
+	ps->SetInt("ssaoSamples", 16);
+	ps->SetFloat2("randomTextureSceenScale", XMFLOAT2(windowWidth / 4.0f, windowHeight / 4.0f));
+	ps->CopyAllBufferData();
+
+	context->Draw(3, 0);
+
+	// Get SSAO Blue
+	targets[0] = ssaoBlurredRTV.Get();
+	context->OMSetRenderTargets(1, targets, 0);
+
+	ps = LoadShader(SimplePixelShader, L"SsaoBlurPS.cso");
+	ps->SetShader();
+
+	ps->SetShaderResourceView("SSAO", ssaoOutputSRV);
+
+	ps->SetFloat2("pixelSize", XMFLOAT2(1.0f / windowWidth, 1.0f / windowHeight));
+	ps->CopyAllBufferData();
+
+	context->Draw(3, 0);
+
+	// Combine
+	targets[0] = backBufferRTV.Get();
+	context->OMSetRenderTargets(1, targets, 0);
+
+	ps = LoadShader(SimplePixelShader, L"SsaoCombinePS.cso");
+	ps->SetShader();
+
+	ps->SetShaderResourceView("SceneColorsNoAmbient", sceneColorsSRV);
+	ps->SetShaderResourceView("Ambient", ambientColorsSRV);
+	ps->SetShaderResourceView("SSAOBlur", ssaoBlurredSRV);
+	ps->CopyAllBufferData();
+
+	context->Draw(3, 0);
 }
 
 void Renderer::CreateRenderTarget(unsigned int width,
@@ -197,7 +259,7 @@ void Renderer::CreateRenderTarget(unsigned int width,
 	texDesc.MipLevels = 1;
 	texDesc.MiscFlags = 0;
 	texDesc.SampleDesc.Count = 1;
-	
+
 	device->CreateTexture2D(&texDesc, 0, rtTexture.GetAddressOf());
 
 	// Create render target view
