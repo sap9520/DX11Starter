@@ -7,6 +7,7 @@
 
 using namespace DirectX;
 
+#define RandomRange(min, max) (float)rand() / RAND_MAX * (max - min) + min
 #define LoadShader(type, file) std::make_shared<type>(device.Get(), context.Get(), FixPath(file).c_str())
 
 Renderer* Renderer::instance;
@@ -28,6 +29,8 @@ void Renderer::Initialize(
 	windowWidth = _windowWidth;
 	windowHeight = _windowHeight;
 
+	CreateSamplers();
+
 	// Create render targets
 	CreateRenderTarget(windowWidth, windowHeight, sceneColorsRTV, sceneColorsSRV);
 	CreateRenderTarget(windowWidth, windowHeight, ambientColorsRTV, ambientColorsSRV);
@@ -38,7 +41,8 @@ void Renderer::Initialize(
 	CreateRenderTarget(windowWidth, windowHeight, ssaoBlurredRTV, ssaoBlurredSRV);
 
 	// Create SSAO offset vectors
-	for (int i = 0; i < 64; i++) {
+	for (int i = 0; i < 64; i++)
+	{
 		// Offsets are in a hemisphere range of ([-1, 1], [-1, 1], [0, 1])
 		ssaoOffsets[i] = XMFLOAT4(
 			(float)rand() / RAND_MAX * 2 - 1,	// -1 to 1
@@ -55,6 +59,9 @@ void Renderer::Initialize(
 			scale * scale);
 		XMStoreFloat4(&ssaoOffsets[i], offset * acceleratedScale);
 	}
+
+	// Create random texture for SSAO
+	CreateRandomTexture();
 }
 
 Renderer::~Renderer()
@@ -114,12 +121,12 @@ void Renderer::FrameStart()
 	const float bgColor[4] = { 0.0f, 0.0f, 0.0f, 1.0f }; // Black
 	context->ClearRenderTargetView(backBufferRTV.Get(), bgColor);
 
-	/*context->ClearRenderTargetView(sceneColorsRTV.Get(), bgColor);
+	context->ClearRenderTargetView(sceneColorsRTV.Get(), bgColor);
 	context->ClearRenderTargetView(ambientColorsRTV.Get(), bgColor);
 	context->ClearRenderTargetView(depthsRTV.Get(), bgColor);
 	context->ClearRenderTargetView(normalsRTV.Get(), bgColor);
 	context->ClearRenderTargetView(ssaoOutputRTV.Get(), bgColor);
-	context->ClearRenderTargetView(ssaoBlurredRTV.Get(), bgColor);*/
+	context->ClearRenderTargetView(ssaoBlurredRTV.Get(), bgColor);
 
 	// Clear the depth buffer (resets per-pixel occlusion information)
 	context->ClearDepthStencilView(depthBufferDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -140,6 +147,10 @@ void Renderer::FrameEnd(bool vsync)
 
 	// Must re-bind buffers after presenting, as they become unbound
 	context->OMSetRenderTargets(1, backBufferRTV.GetAddressOf(), depthBufferDSV.Get());
+
+	// Unbind all SRVs
+	ID3D11ShaderResourceView* nullSRVs[6] = {};
+	context->PSSetShaderResources(0, 6, nullSRVs);
 }
 
 void Renderer::RenderScene(
@@ -170,6 +181,9 @@ void Renderer::RenderScene(
 		ps->SetShaderResourceView("IrradianceIBLMap", sky->GetIrradianceMap());
 		ps->SetShaderResourceView("SpecularIBLMap", sky->GetConvolvedSpecularMap());
 
+		ps->SetSamplerState("BasicSampler", basicSampler);
+		ps->SetSamplerState("ClampSampler", clampSampler);
+
 		ps->SetData("lights", (void*)(&lights[0]), sizeof(Light) * lightCount);
 		ps->SetInt("lightCount", lightCount);
 		ps->SetFloat3("cameraPosition", camera->GetTransform()->GetPosition());
@@ -195,10 +209,12 @@ void Renderer::RenderScene(
 	vs->SetShader();
 	ps->SetShader();
 
-
 	ps->SetShaderResourceView("Normals", normalsSRV);
 	ps->SetShaderResourceView("Depths", depthsSRV);
-	// ps->SetShaderResourceView("Random", random);
+	ps->SetShaderResourceView("Random", randomTextureSRV);
+
+	ps->SetSamplerState("BasicSampler", basicSampler);
+	ps->SetSamplerState("ClampSampler", clampSampler);
 
 	XMFLOAT4X4 inverseProj, proj = camera->GetProjection();
 	XMStoreFloat4x4(&inverseProj, XMMatrixInverse(0, XMLoadFloat4x4(&proj)));
@@ -213,7 +229,7 @@ void Renderer::RenderScene(
 
 	context->Draw(3, 0);
 
-	// Get SSAO Blue
+	// Get SSAO Blur
 	targets[0] = ssaoBlurredRTV.Get();
 	context->OMSetRenderTargets(1, targets, 0);
 
@@ -221,6 +237,7 @@ void Renderer::RenderScene(
 	ps->SetShader();
 
 	ps->SetShaderResourceView("SSAO", ssaoOutputSRV);
+	ps->SetSamplerState("ClampSampler", clampSampler);
 
 	ps->SetFloat2("pixelSize", XMFLOAT2(1.0f / windowWidth, 1.0f / windowHeight));
 	ps->CopyAllBufferData();
@@ -237,6 +254,8 @@ void Renderer::RenderScene(
 	ps->SetShaderResourceView("SceneColorsNoAmbient", sceneColorsSRV);
 	ps->SetShaderResourceView("Ambient", ambientColorsSRV);
 	ps->SetShaderResourceView("SSAOBlur", ssaoBlurredSRV);
+
+	ps->SetSamplerState("BasicSampler", basicSampler);
 	ps->CopyAllBufferData();
 
 	context->Draw(3, 0);
@@ -244,8 +263,8 @@ void Renderer::RenderScene(
 
 void Renderer::CreateRenderTarget(unsigned int width,
 	unsigned int height,
-	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtv,
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv)
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>& rtv,
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv)
 {
 	// Create texture
 	Microsoft::WRL::ComPtr<ID3D11Texture2D> rtTexture;
@@ -272,4 +291,55 @@ void Renderer::CreateRenderTarget(unsigned int width,
 
 	// Create shader resource view
 	device->CreateShaderResourceView(rtTexture.Get(), 0, srv.GetAddressOf());
+}
+
+void Renderer::CreateRandomTexture()
+{
+	const int textureSize = 4;
+	const int totalPixels = textureSize * textureSize;
+	XMFLOAT4 randomPixels[totalPixels] = {};
+	for (int i = 0; i < totalPixels; i++)
+	{
+		XMVECTOR randomVec = XMVectorSet(RandomRange(-1, 1), RandomRange(-1, 1), 0, 0);
+		XMStoreFloat4(&randomPixels[i], XMVector3Normalize(randomVec));
+	}
+
+	D3D11_SUBRESOURCE_DATA data = {};
+	data.pSysMem = randomPixels;
+	data.SysMemPitch = sizeof(int) * 16;
+
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> randomTexture;
+	D3D11_TEXTURE2D_DESC texDesc = {};
+	texDesc.Width = 4;
+	texDesc.Height = 4;
+	texDesc.ArraySize = 1;
+	texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	texDesc.MipLevels = 1;
+	texDesc.MiscFlags = 0;
+	texDesc.SampleDesc.Count = 1;
+
+	device->CreateTexture2D(&texDesc, &data, randomTexture.GetAddressOf());
+	device->CreateShaderResourceView(randomTexture.Get(), 0, randomTextureSRV.GetAddressOf());
+}
+
+void Renderer::CreateSamplers()
+{
+	D3D11_SAMPLER_DESC sampDesc = {};
+	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+	sampDesc.MaxAnisotropy = 16;
+	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	device->CreateSamplerState(&sampDesc, basicSampler.GetAddressOf());
+
+	D3D11_SAMPLER_DESC clampSampDesc = {};
+	clampSampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	clampSampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	clampSampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	clampSampDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+	clampSampDesc.MaxAnisotropy = 16;
+	clampSampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	device->CreateSamplerState(&clampSampDesc, clampSampler.GetAddressOf());
 }

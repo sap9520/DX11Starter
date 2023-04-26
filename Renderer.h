@@ -74,8 +74,11 @@ public:
 
 	void CreateRenderTarget(unsigned int width,
 							unsigned int height, 
-							Microsoft::WRL::ComPtr<ID3D11RenderTargetView> rtv, 
-							Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> srv);
+							Microsoft::WRL::ComPtr<ID3D11RenderTargetView>& rtv, 
+							Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv);
+
+	void CreateRandomTexture();
+	void CreateSamplers();
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11Device> device;
@@ -86,8 +89,13 @@ private:
 	unsigned int windowWidth;
 	unsigned int windowHeight;
 
+	// Samplers
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> basicSampler;
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> clampSampler;
+
 	// SSAO - related variables
 	DirectX::XMFLOAT4 ssaoOffsets[64];
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> randomTextureSRV;
 
 	// Render targets
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> sceneColorsRTV;
