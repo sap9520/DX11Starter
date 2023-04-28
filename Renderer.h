@@ -74,11 +74,19 @@ public:
 
 	void CreateRenderTarget(unsigned int width,
 							unsigned int height, 
+							DXGI_FORMAT format,
 							Microsoft::WRL::ComPtr<ID3D11RenderTargetView>& rtv, 
 							Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv);
 
 	void CreateRandomTexture();
 	void CreateSamplers();
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSceneColorsSRV() { return sceneColorsSRV; }
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetAmbientColorsSRV() { return ambientColorsSRV; }
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetDepthsSRV() { return depthsSRV; }
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetNormalsSRV() { return normalsSRV; }
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSSAOOutputSRV() { return ssaoOutputSRV; }
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> GetSSAOBlurredSRV() { return ssaoBlurredSRV; }
 
 private:
 	Microsoft::WRL::ComPtr<ID3D11Device> device;

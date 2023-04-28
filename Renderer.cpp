@@ -32,13 +32,13 @@ void Renderer::Initialize(
 	CreateSamplers();
 
 	// Create render targets
-	CreateRenderTarget(windowWidth, windowHeight, sceneColorsRTV, sceneColorsSRV);
-	CreateRenderTarget(windowWidth, windowHeight, ambientColorsRTV, ambientColorsSRV);
-	CreateRenderTarget(windowWidth, windowHeight, depthsRTV, depthsSRV);
-	CreateRenderTarget(windowWidth, windowHeight, normalsRTV, normalsSRV);
+	CreateRenderTarget(windowWidth, windowHeight, DXGI_FORMAT_R8G8B8A8_UNORM, sceneColorsRTV, sceneColorsSRV);
+	CreateRenderTarget(windowWidth, windowHeight, DXGI_FORMAT_R8G8B8A8_UNORM, ambientColorsRTV, ambientColorsSRV);
+	CreateRenderTarget(windowWidth, windowHeight, DXGI_FORMAT_R32_FLOAT, depthsRTV, depthsSRV);
+	CreateRenderTarget(windowWidth, windowHeight, DXGI_FORMAT_R8G8B8A8_UNORM, normalsRTV, normalsSRV);
 
-	CreateRenderTarget(windowWidth, windowHeight, ssaoOutputRTV, ssaoOutputSRV);
-	CreateRenderTarget(windowWidth, windowHeight, ssaoBlurredRTV, ssaoBlurredSRV);
+	CreateRenderTarget(windowWidth, windowHeight, DXGI_FORMAT_R8G8B8A8_UNORM, ssaoOutputRTV, ssaoOutputSRV);
+	CreateRenderTarget(windowWidth, windowHeight, DXGI_FORMAT_R8G8B8A8_UNORM, ssaoBlurredRTV, ssaoBlurredSRV);
 
 	// Create SSAO offset vectors
 	for (int i = 0; i < 64; i++)
@@ -107,13 +107,13 @@ void Renderer::PostResize(
 	depthBufferDSV = _depthBufferDSV;
 
 	// Rereate render targets
-	CreateRenderTarget(windowWidth, windowHeight, sceneColorsRTV, sceneColorsSRV);
-	CreateRenderTarget(windowWidth, windowHeight, ambientColorsRTV, ambientColorsSRV);
-	CreateRenderTarget(windowWidth, windowHeight, depthsRTV, depthsSRV);
-	CreateRenderTarget(windowWidth, windowHeight, normalsRTV, normalsSRV);
+	CreateRenderTarget(windowWidth, windowHeight, DXGI_FORMAT_R8G8B8A8_UNORM, sceneColorsRTV, sceneColorsSRV);
+	CreateRenderTarget(windowWidth, windowHeight, DXGI_FORMAT_R8G8B8A8_UNORM, ambientColorsRTV, ambientColorsSRV);
+	CreateRenderTarget(windowWidth, windowHeight, DXGI_FORMAT_R32_FLOAT, depthsRTV, depthsSRV);
+	CreateRenderTarget(windowWidth, windowHeight, DXGI_FORMAT_R8G8B8A8_UNORM, normalsRTV, normalsSRV);
 
-	CreateRenderTarget(windowWidth, windowHeight, ssaoOutputRTV, ssaoOutputSRV);
-	CreateRenderTarget(windowWidth, windowHeight, ssaoBlurredRTV, ssaoBlurredSRV);
+	CreateRenderTarget(windowWidth, windowHeight, DXGI_FORMAT_R8G8B8A8_UNORM, ssaoOutputRTV, ssaoOutputSRV);
+	CreateRenderTarget(windowWidth, windowHeight, DXGI_FORMAT_R8G8B8A8_UNORM, ssaoBlurredRTV, ssaoBlurredSRV);
 }
 
 void Renderer::FrameStart()
@@ -149,8 +149,8 @@ void Renderer::FrameEnd(bool vsync)
 	context->OMSetRenderTargets(1, backBufferRTV.GetAddressOf(), depthBufferDSV.Get());
 
 	// Unbind all SRVs
-	ID3D11ShaderResourceView* nullSRVs[6] = {};
-	context->PSSetShaderResources(0, 6, nullSRVs);
+	ID3D11ShaderResourceView* nullSRVs[8] = {};
+	context->PSSetShaderResources(0, 8, nullSRVs);
 }
 
 void Renderer::RenderScene(
@@ -167,6 +167,9 @@ void Renderer::RenderScene(
 	targets[3] = depthsRTV.Get();
 	context->OMSetRenderTargets(4, targets, depthBufferDSV.Get());
 
+	std::shared_ptr<SimpleVertexShader> vs;
+	std::shared_ptr<SimplePixelShader> ps;
+
 	// Draw all of the entities
 	for (auto& ge : entities)
 	{
@@ -175,7 +178,7 @@ void Renderer::RenderScene(
 		// the draw loop, but we're currently setting it per entity since 
 		// we are just using whichever shader the current entity has.  
 		// Inefficient!!!
-		std::shared_ptr<SimplePixelShader> ps = ge->GetMaterial()->GetPixelShader();
+		ps = ge->GetMaterial()->GetPixelShader();
 
 		ps->SetShaderResourceView("BrdfLookUpMap", sky->GetBRDFLookUpTexture());
 		ps->SetShaderResourceView("IrradianceIBLMap", sky->GetIrradianceMap());
@@ -197,72 +200,86 @@ void Renderer::RenderScene(
 	// Draw the sky
 	sky->Draw(camera);
 
-	// Get SSAO results
-	targets[0] = ssaoOutputRTV.Get();
+	// Post process
 	targets[1] = 0;
 	targets[2] = 0;
 	targets[3] = 0;
-	context->OMSetRenderTargets(4, targets, depthBufferDSV.Get());
 
-	std::shared_ptr<SimpleVertexShader> vs = LoadShader(SimpleVertexShader, L"FullscreenVS.cso");
-	std::shared_ptr<SimplePixelShader> ps = LoadShader(SimplePixelShader, L"SsaoPS.cso");
+	vs = LoadShader(SimpleVertexShader, L"FullscreenVS.cso");
 	vs->SetShader();
-	ps->SetShader();
 
-	ps->SetShaderResourceView("Normals", normalsSRV);
-	ps->SetShaderResourceView("Depths", depthsSRV);
-	ps->SetShaderResourceView("Random", randomTextureSRV);
+	// Get SSAO results
+	{
+		targets[0] = ssaoOutputRTV.Get();
+		context->OMSetRenderTargets(1, targets, depthBufferDSV.Get());
 
-	ps->SetSamplerState("BasicSampler", basicSampler);
-	ps->SetSamplerState("ClampSampler", clampSampler);
+		ps = LoadShader(SimplePixelShader, L"SsaoPS.cso");
+		ps->SetShader();
 
-	XMFLOAT4X4 inverseProj, proj = camera->GetProjection();
-	XMStoreFloat4x4(&inverseProj, XMMatrixInverse(0, XMLoadFloat4x4(&proj)));
-	ps->SetMatrix4x4("viewMatrix", camera->GetView());
-	ps->SetMatrix4x4("projMatrix", proj);
-	ps->SetMatrix4x4("inverseProjMatrix", inverseProj);
-	ps->SetData("offsets", ssaoOffsets, sizeof(XMFLOAT4) * ARRAYSIZE(ssaoOffsets));
-	ps->SetFloat("ssaoRadius", 10);
-	ps->SetInt("ssaoSamples", 16);
-	ps->SetFloat2("randomTextureSceenScale", XMFLOAT2(windowWidth / 4.0f, windowHeight / 4.0f));
-	ps->CopyAllBufferData();
+		ps->SetShaderResourceView("Normals", normalsSRV);
+		ps->SetShaderResourceView("Depths", depthsSRV);
+		ps->SetShaderResourceView("Random", randomTextureSRV);
 
-	context->Draw(3, 0);
+		ps->SetSamplerState("BasicSampler", basicSampler);
+		ps->SetSamplerState("ClampSampler", clampSampler);
+
+		XMFLOAT4X4 inverseProj;
+		XMFLOAT4X4 proj = camera->GetProjection();
+		DirectX::XMStoreFloat4x4(&inverseProj, XMMatrixInverse(0, XMLoadFloat4x4(&proj)));
+		ps->SetMatrix4x4("viewMatrix", camera->GetView());
+		ps->SetMatrix4x4("projMatrix", proj);
+		ps->SetMatrix4x4("inverseProjMatrix", inverseProj);
+		ps->SetData("offsets", ssaoOffsets, sizeof(XMFLOAT4) * ARRAYSIZE(ssaoOffsets));
+		ps->SetFloat("ssaoRadius", 1);
+		ps->SetInt("ssaoSamples", 64);
+		ps->SetFloat2("randomTextureSceenScale", XMFLOAT2(windowWidth / 4.0f, windowHeight / 4.0f));
+		ps->CopyAllBufferData();
+
+		context->Draw(3, 0);
+	}
+	
 
 	// Get SSAO Blur
-	targets[0] = ssaoBlurredRTV.Get();
-	context->OMSetRenderTargets(1, targets, 0);
+	{
+		targets[0] = ssaoBlurredRTV.Get();
+		context->OMSetRenderTargets(1, targets, 0);
 
-	ps = LoadShader(SimplePixelShader, L"SsaoBlurPS.cso");
-	ps->SetShader();
+		ps = LoadShader(SimplePixelShader, L"SsaoBlurPS.cso");
+		ps->SetShader();
 
-	ps->SetShaderResourceView("SSAO", ssaoOutputSRV);
-	ps->SetSamplerState("ClampSampler", clampSampler);
+		ps->SetShaderResourceView("SSAO", ssaoOutputSRV);
+		ps->SetSamplerState("ClampSampler", clampSampler);
 
-	ps->SetFloat2("pixelSize", XMFLOAT2(1.0f / windowWidth, 1.0f / windowHeight));
-	ps->CopyAllBufferData();
+		ps->SetFloat2("pixelSize", XMFLOAT2(1.0f / windowWidth, 1.0f / windowHeight));
+		ps->CopyAllBufferData();
 
-	context->Draw(3, 0);
+		context->Draw(3, 0);
+	}
+
 
 	// Combine
-	targets[0] = backBufferRTV.Get();
-	context->OMSetRenderTargets(1, targets, 0);
+	{
+		targets[0] = backBufferRTV.Get();
+		context->OMSetRenderTargets(1, targets, 0);
 
-	ps = LoadShader(SimplePixelShader, L"SsaoCombinePS.cso");
-	ps->SetShader();
+		ps = LoadShader(SimplePixelShader, L"SsaoCombinePS.cso");
+		ps->SetShader();
 
-	ps->SetShaderResourceView("SceneColorsNoAmbient", sceneColorsSRV);
-	ps->SetShaderResourceView("Ambient", ambientColorsSRV);
-	ps->SetShaderResourceView("SSAOBlur", ssaoBlurredSRV);
+		ps->SetShaderResourceView("SceneColorsNoAmbient", sceneColorsSRV);
+		ps->SetShaderResourceView("Ambient", ambientColorsSRV);
+		ps->SetShaderResourceView("SSAOBlur", ssaoBlurredSRV);
 
-	ps->SetSamplerState("BasicSampler", basicSampler);
-	ps->CopyAllBufferData();
+		ps->SetSamplerState("BasicSampler", basicSampler);
+		ps->CopyAllBufferData();
 
-	context->Draw(3, 0);
+		context->Draw(3, 0);
+	}
+
 }
 
 void Renderer::CreateRenderTarget(unsigned int width,
 	unsigned int height,
+	DXGI_FORMAT format,
 	Microsoft::WRL::ComPtr<ID3D11RenderTargetView>& rtv,
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView>& srv)
 {
@@ -274,7 +291,7 @@ void Renderer::CreateRenderTarget(unsigned int width,
 	texDesc.Height = height;
 	texDesc.ArraySize = 1;
 	texDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-	texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	texDesc.Format = format;
 	texDesc.MipLevels = 1;
 	texDesc.MiscFlags = 0;
 	texDesc.SampleDesc.Count = 1;

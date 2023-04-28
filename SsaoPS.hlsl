@@ -14,7 +14,7 @@ cbuffer externalData : register(b0)
 struct VertexToPixel
 {
 	float4 screenPosition	: SV_POSITION;
-	float2 uv				: TEXCOORD;
+	float2 uv				: TEXCOORD0;
 };
 
 // Texture - related variables
@@ -54,6 +54,7 @@ float4 main(VertexToPixel input) : SV_TARGET
 {
 	// Sample depth, give early out if skybox
 	float pixelDepth = Depths.Sample(ClampSampler, input.uv).r;
+	
 	if (pixelDepth == 1.0f)
 		return float4(1, 1, 1, 1);
 

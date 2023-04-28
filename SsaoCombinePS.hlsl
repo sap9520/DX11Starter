@@ -2,7 +2,7 @@
 struct VertexToPixel
 {
 	float4 screenPosition	: SV_POSITION;
-	float2 uv				: TEXCOORD;
+	float2 uv				: TEXCOORD0;
 };
 
 // Textures
