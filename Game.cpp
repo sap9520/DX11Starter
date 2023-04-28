@@ -158,6 +158,9 @@ void Game::LoadAssetsAndCreateEntities()
 	std::shared_ptr<Mesh> cubeMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/cube.obj").c_str(), device);
 	std::shared_ptr<Mesh> coneMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/cone.obj").c_str(), device);
 	std::shared_ptr<Mesh> treeMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/tree.obj").c_str(), device);
+	std::shared_ptr<Mesh> tableMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/table.obj").c_str(), device);
+	std::shared_ptr<Mesh> pottedPlantMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/potted plant.obj").c_str(), device);
+	std::shared_ptr<Mesh> logMesh = std::make_shared<Mesh>(FixPath(L"../../Assets/Models/log.obj").c_str(), device);
 	
 	// Declare the textures we'll need
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cobbleA,  cobbleN,  cobbleR,  cobbleM;
@@ -166,8 +169,8 @@ void Game::LoadAssetsAndCreateEntities()
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> scratchedA,  scratchedN,  scratchedR,  scratchedM;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> bronzeA,  bronzeN,  bronzeR,  bronzeM;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> roughA,  roughN,  roughR,  roughM;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> woodA,  woodN,  woodR,  woodM;
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> mirrorA, mirrorN, mirrorR, mirrorM;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> woodA, woodN, woodR, woodM;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> barkA, barkN, barkR, barkM;
 
 	// Load the textures using our succinct LoadTexture() macro
 	LoadTexture(L"../../Assets/Textures/cobblestone_albedo.png", cobbleA);
@@ -205,9 +208,10 @@ void Game::LoadAssetsAndCreateEntities()
 	LoadTexture(L"../../Assets/Textures/wood_roughness.png", woodR);
 	LoadTexture(L"../../Assets/Textures/wood_metal.png", woodM);
 
-	LoadTexture(L"../../Assets/Textures/mirror_albedo.png", mirrorA);
-	LoadTexture(L"../../Assets/Textures/mirror_roughness75.png", mirrorR);
-	LoadTexture(L"../../Assets/Textures/mirror_metal.png", mirrorM);
+	LoadTexture(L"../../Assets/Textures/bark_albedo.png", barkA);
+	LoadTexture(L"../../Assets/Textures/bark_normals.png", barkN);
+	LoadTexture(L"../../Assets/Textures/bark_roughness.png", barkR);
+	LoadTexture(L"../../Assets/Textures/bark_metal.png", barkM);
 
 	// Describe and create our sampler states
 	D3D11_SAMPLER_DESC sampDesc = {};
@@ -308,13 +312,13 @@ void Game::LoadAssetsAndCreateEntities()
 	woodMatPBR->AddTextureSRV("RoughnessMap", woodR);
 	woodMatPBR->AddTextureSRV("MetalMap", bronzeM);
 
-	std::shared_ptr<Material> mirrorMatPBR = std::make_shared<Material>(pixelShaderPBR, vertexShader, XMFLOAT3(1, 1, 1), XMFLOAT2(2, 2));
-	mirrorMatPBR->AddSampler("BasicSampler", samplerOptions);
-	mirrorMatPBR->AddSampler("ClampSampler", clampSamplerOptions);
-	mirrorMatPBR->AddTextureSRV("Albedo", mirrorA);
-	mirrorMatPBR->AddTextureSRV("NormalMap", scratchedN);
-	mirrorMatPBR->AddTextureSRV("RoughnessMap", mirrorA);
-	mirrorMatPBR->AddTextureSRV("MetalMap", mirrorA);
+	std::shared_ptr<Material> barkMatPBR = std::make_shared<Material>(pixelShaderPBR, vertexShader, XMFLOAT3(1, 1, 1), XMFLOAT2(2, 2));
+	barkMatPBR->AddSampler("BasicSampler", samplerOptions);
+	barkMatPBR->AddSampler("ClampSampler", clampSamplerOptions);
+	barkMatPBR->AddTextureSRV("Albedo", barkA);
+	barkMatPBR->AddTextureSRV("NormalMap", barkN);
+	barkMatPBR->AddTextureSRV("RoughnessMap", barkR);
+	barkMatPBR->AddTextureSRV("MetalMap", barkM);
 
 	// === Create the PBR entities =====================================
 	std::shared_ptr<GameEntity> cobSpherePBR = std::make_shared<GameEntity>(sphereMesh, cobbleMat4xPBR);
@@ -345,10 +349,59 @@ void Game::LoadAssetsAndCreateEntities()
 	woodSpherePBR->GetTransform()->SetPosition(6, 2, 0);
 	woodSpherePBR->GetTransform()->SetScale(2, 2, 2);
 
-	std::shared_ptr<GameEntity> treePBR = std::make_shared<GameEntity>(treeMesh, woodMatPBR);
-	woodSpherePBR->GetTransform()->SetPosition(10, 2, 0);
-	woodSpherePBR->GetTransform()->SetScale(2, 2, 2);
+	std::shared_ptr<GameEntity> tablePBR = std::make_shared<GameEntity>(tableMesh, paintMatPBR);
+	tablePBR->GetTransform()->SetPosition(10, 2, 0);
+	tablePBR->GetTransform()->SetScale(0.1f, 0.1f, 0.1f);
 
+	std::shared_ptr<GameEntity> pottedPlantPBR1 = std::make_shared<GameEntity>(pottedPlantMesh, paintMatPBR);
+	pottedPlantPBR1->GetTransform()->SetPosition(10, 5.5f, 4);
+
+	std::shared_ptr<GameEntity> pottedPlantPBR2 = std::make_shared<GameEntity>(pottedPlantMesh, paintMatPBR);
+	pottedPlantPBR2->GetTransform()->SetPosition(10, 5.5f, 2);
+	pottedPlantPBR2->GetTransform()->SetScale(1.5f, 1.5f, 1.5f);
+
+	std::shared_ptr<GameEntity> pottedPlantPBR3 = std::make_shared<GameEntity>(pottedPlantMesh, paintMatPBR);
+	pottedPlantPBR3->GetTransform()->SetPosition(10, 5.5f, 0);
+	pottedPlantPBR3->GetTransform()->SetScale(2, 2, 2);
+
+	std::shared_ptr<GameEntity> pottedPlantPBR4 = std::make_shared<GameEntity>(pottedPlantMesh, paintMatPBR);
+	pottedPlantPBR4->GetTransform()->SetPosition(10, 5.5f, -2);
+	pottedPlantPBR4->GetTransform()->SetScale(2.5f, 2.5f, 2.5f);
+
+	std::shared_ptr<GameEntity> logPBR1 = std::make_shared<GameEntity>(logMesh, barkMatPBR);
+	logPBR1->GetTransform()->SetPosition(10, 0, 0);
+	logPBR1->GetTransform()->SetScale(0.5f, 0.5f, 0.5f);
+	logPBR1->GetTransform()->Rotate(0, 1.5f, 0);
+
+	std::shared_ptr<GameEntity> logPBR2 = std::make_shared<GameEntity>(logMesh, barkMatPBR);
+	logPBR2->GetTransform()->SetPosition(10, 0, 1);
+	logPBR2->GetTransform()->SetScale(0.5f, 0.5f, 0.5f);
+	logPBR2->GetTransform()->Rotate(0, 1.5f, 0);
+
+	std::shared_ptr<GameEntity> logPBR3 = std::make_shared<GameEntity>(logMesh, barkMatPBR);
+	logPBR3->GetTransform()->SetPosition(10, 0, 2);
+	logPBR3->GetTransform()->SetScale(0.5f, 0.5f, 0.5f);
+	logPBR3->GetTransform()->Rotate(0, 1.5f, 0);
+
+	std::shared_ptr<GameEntity> logPBR4 = std::make_shared<GameEntity>(logMesh, barkMatPBR);
+	logPBR4->GetTransform()->SetPosition(10, 1, 0.5f);
+	logPBR4->GetTransform()->SetScale(0.5f, 0.5f, 0.5f);
+	logPBR4->GetTransform()->Rotate(0, 1.5f, 0);
+
+	std::shared_ptr<GameEntity> logPBR5 = std::make_shared<GameEntity>(logMesh, barkMatPBR);
+	logPBR5->GetTransform()->SetPosition(10, 1, 1.5f);
+	logPBR5->GetTransform()->SetScale(0.5f, 0.5f, 0.5f);
+	logPBR5->GetTransform()->Rotate(0, 1.5f, 0);
+
+	std::shared_ptr<GameEntity> logPBR6 = std::make_shared<GameEntity>(logMesh, barkMatPBR);
+	logPBR6->GetTransform()->SetPosition(10, 2, 1);
+	logPBR6->GetTransform()->SetScale(0.5f, 0.5f, 0.5f);
+	logPBR6->GetTransform()->Rotate(0, 1.5f, 0);
+
+	entities.push_back(pottedPlantPBR1);
+	entities.push_back(pottedPlantPBR2);
+	entities.push_back(pottedPlantPBR3);
+	entities.push_back(pottedPlantPBR4);
 	entities.push_back(cobSpherePBR);
 	entities.push_back(floorSpherePBR);
 	entities.push_back(paintSpherePBR);
@@ -356,8 +409,13 @@ void Game::LoadAssetsAndCreateEntities()
 	entities.push_back(bronzeSpherePBR);
 	entities.push_back(roughSpherePBR);
 	entities.push_back(woodSpherePBR);
-	entities.push_back(treePBR);
-
+	entities.push_back(tablePBR);
+	entities.push_back(logPBR1);
+	entities.push_back(logPBR2);
+	entities.push_back(logPBR3);
+	entities.push_back(logPBR4);
+	entities.push_back(logPBR5);
+	entities.push_back(logPBR6);
 
 	// Save assets needed for drawing point lights
 	lightMesh = sphereMesh;
@@ -448,6 +506,10 @@ void Game::Update(float deltaTime, float totalTime)
 
 	// Update the camera
 	camera->Update(deltaTime);
+
+	for (int i = 0; i < 3; i++) {
+		entities[i]->GetTransform()->Rotate(0, deltaTime, 0);
+	}
 
 	// Check individual input
 	Input& input = Input::GetInstance();

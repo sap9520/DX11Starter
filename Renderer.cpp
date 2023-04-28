@@ -230,7 +230,7 @@ void Renderer::RenderScene(
 		ps->SetMatrix4x4("projMatrix", proj);
 		ps->SetMatrix4x4("inverseProjMatrix", inverseProj);
 		ps->SetData("offsets", ssaoOffsets, sizeof(XMFLOAT4) * ARRAYSIZE(ssaoOffsets));
-		ps->SetFloat("ssaoRadius", 1);
+		ps->SetFloat("ssaoRadius", 1.0f);
 		ps->SetInt("ssaoSamples", 64);
 		ps->SetFloat2("randomTextureSceenScale", XMFLOAT2(windowWidth / 4.0f, windowHeight / 4.0f));
 		ps->CopyAllBufferData();
