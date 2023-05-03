@@ -48,11 +48,19 @@ private:
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> samplerOptions;
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> clampSamplerOptions;
 
+	// Compute Shader resources
+	int csTextureSize = 256;
+	float num = 0;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> csTextureSRV;
+	Microsoft::WRL::ComPtr<ID3D11UnorderedAccessView> csTextureUAV;
+
 	// Skybox
 	std::shared_ptr<Sky> sky;
 
 	// General helpers for setup and drawing
 	void LoadAssetsAndCreateEntities();
+	void CreateComputeShaderResources();
+	void RunComputeShader();
 	void GenerateLights();
 	void DrawPointLights();
 

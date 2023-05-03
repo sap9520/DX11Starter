@@ -247,6 +247,16 @@ void Game::LoadAssetsAndCreateEntities()
 		device,
 		context);
 
+	// Create Compute Shader material
+	CreateComputeShaderResources();
+	std::shared_ptr<Material> csMat = std::make_shared<Material>(pixelShaderPBR, vertexShader, XMFLOAT3(1, 1, 1), XMFLOAT2(2, 2));
+	csMat->AddSampler("BasicSampler", samplerOptions);
+	csMat->AddSampler("ClampSampler", clampSamplerOptions);
+	csMat->AddTextureSRV("Albedo", csTextureSRV);
+	csMat->AddTextureSRV("NormalMap", cobbleN);
+	csMat->AddTextureSRV("RoughnessMap", cobbleR);
+	csMat->AddTextureSRV("MetalMap", cobbleM);
+
 	// Create PBR materials
 	std::shared_ptr<Material> cobbleMat2xPBR = std::make_shared<Material>(pixelShaderPBR, vertexShader, XMFLOAT3(1, 1, 1), XMFLOAT2(2, 2));
 	cobbleMat2xPBR->AddSampler("BasicSampler", samplerOptions);
@@ -321,7 +331,7 @@ void Game::LoadAssetsAndCreateEntities()
 	barkMatPBR->AddTextureSRV("MetalMap", barkM);
 
 	// === Create the PBR entities =====================================
-	std::shared_ptr<GameEntity> cobSpherePBR = std::make_shared<GameEntity>(sphereMesh, cobbleMat4xPBR);
+	std::shared_ptr<GameEntity> cobSpherePBR = std::make_shared<GameEntity>(sphereMesh, csMat);
 	cobSpherePBR->GetTransform()->SetPosition(-6, 2, 0);
 	cobSpherePBR->GetTransform()->SetScale(2, 2, 2);
 
@@ -423,6 +433,28 @@ void Game::LoadAssetsAndCreateEntities()
 	lightPS = solidColorPS;
 }
 
+void Game::CreateComputeShaderResources()
+{
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> csTexture;
+	D3D11_TEXTURE2D_DESC texDesc = {};
+	texDesc.Width = csTextureSize;
+	texDesc.Height = csTextureSize;
+	texDesc.ArraySize = 1;
+	texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+	texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	texDesc.MipLevels = 1;
+	texDesc.MiscFlags = 0;
+	texDesc.SampleDesc.Count = 1;
+
+	device->CreateTexture2D(&texDesc, 0, csTexture.GetAddressOf());
+	device->CreateShaderResourceView(csTexture.Get(), 0, csTextureSRV.GetAddressOf());
+
+	D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+	uavDesc.Format = texDesc.Format;
+	uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+	uavDesc.Texture2D.MipSlice = 0;
+	device->CreateUnorderedAccessView(csTexture.Get(), &uavDesc, &csTextureUAV);
+}
 
 // --------------------------------------------------------
 // Generates the lights in the scene: 3 directional lights
@@ -522,6 +554,8 @@ void Game::Update(float deltaTime, float totalTime)
 // --------------------------------------------------------
 void Game::Draw(float deltaTime, float totalTime)
 {
+	RunComputeShader();
+
 	Renderer::GetInstance().FrameStart();
 
 	Renderer::GetInstance().RenderScene(entities, sky, lights, lightCount, camera);
@@ -529,6 +563,23 @@ void Game::Draw(float deltaTime, float totalTime)
 	Renderer::GetInstance().FrameEnd(vsync);
 }
 
+
+void Game::RunComputeShader()
+{
+	num += 0.1f;
+
+	std::shared_ptr<SimpleComputeShader> cs = LoadShader(SimpleComputeShader, L"NoiseCS.cso");
+	cs->SetShader();
+
+	cs->SetUnorderedAccessView("outNoiseTexture", csTextureUAV);
+	cs->SetFloat("randNum", num);
+
+	cs->CopyAllBufferData();
+	cs->DispatchByThreads(csTextureSize, csTextureSize, 1);
+
+	// Unbind to use later
+	cs->SetUnorderedAccessView("outNoiseTexture", 0);
+}
 
 // --------------------------------------------------------
 // Draws the point lights as solid color spheres
