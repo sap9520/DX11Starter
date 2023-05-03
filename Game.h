@@ -60,7 +60,7 @@ private:
 	// General helpers for setup and drawing
 	void LoadAssetsAndCreateEntities();
 	void CreateComputeShaderResources();
-	void RunComputeShader();
+	void RunComputeShader(float time);
 	void GenerateLights();
 	void DrawPointLights();
 

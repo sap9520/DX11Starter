@@ -554,7 +554,7 @@ void Game::Update(float deltaTime, float totalTime)
 // --------------------------------------------------------
 void Game::Draw(float deltaTime, float totalTime)
 {
-	RunComputeShader();
+	RunComputeShader(totalTime);
 
 	Renderer::GetInstance().FrameStart();
 
@@ -564,15 +564,19 @@ void Game::Draw(float deltaTime, float totalTime)
 }
 
 
-void Game::RunComputeShader()
+void Game::RunComputeShader(float time)
 {
-	num += 0.1f;
+	if (num > csTextureSize)
+	{
+		num += 1;
+	}
 
 	std::shared_ptr<SimpleComputeShader> cs = LoadShader(SimpleComputeShader, L"NoiseCS.cso");
 	cs->SetShader();
 
 	cs->SetUnorderedAccessView("outNoiseTexture", csTextureUAV);
-	cs->SetFloat("randNum", num);
+	cs->SetFloat2("resolution", XMFLOAT2(csTextureSize, csTextureSize));
+	cs->SetFloat("time", time);
 
 	cs->CopyAllBufferData();
 	cs->DispatchByThreads(csTextureSize, csTextureSize, 1);
