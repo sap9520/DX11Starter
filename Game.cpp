@@ -147,6 +147,7 @@ void Game::LoadAssetsAndCreateEntities()
 	std::shared_ptr<SimpleVertexShader> vertexShader	= LoadShader(SimpleVertexShader, L"VertexShader.cso");
 	std::shared_ptr<SimplePixelShader> pixelShader		= LoadShader(SimplePixelShader, L"PixelShader.cso");
 	std::shared_ptr<SimplePixelShader> pixelShaderPBR	= LoadShader(SimplePixelShader, L"PixelShaderPBR.cso");
+	std::shared_ptr<SimplePixelShader> noiseShader		= LoadShader(SimplePixelShader, L"NoiseLayerPS.cso");
 	std::shared_ptr<SimplePixelShader> solidColorPS		= LoadShader(SimplePixelShader, L"SolidColorPS.cso");
 	
 	std::shared_ptr<SimpleVertexShader> skyVS = LoadShader(SimpleVertexShader, L"SkyVS.cso");
@@ -253,8 +254,9 @@ void Game::LoadAssetsAndCreateEntities()
 	csMat->AddSampler("BasicSampler", samplerOptions);
 	csMat->AddSampler("ClampSampler", clampSamplerOptions);
 	csMat->AddTextureSRV("Albedo", csTextureSRV);
-	csMat->AddTextureSRV("NormalMap", cobbleN);
-	csMat->AddTextureSRV("RoughnessMap", cobbleR);
+	// csMat->AddTextureSRV("NoiseMap", csTextureSRV);
+	csMat->AddTextureSRV("NormalMap", csTextureSRV);
+	csMat->AddTextureSRV("RoughnessMap", csTextureSRV);
 	csMat->AddTextureSRV("MetalMap", cobbleM);
 
 	// Create PBR materials
