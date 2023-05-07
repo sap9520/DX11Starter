@@ -53,14 +53,15 @@ struct VertexToPixel
 
 // Texture-related variables
 Texture2D Albedo			: register(t0);
-Texture2D NormalMap			: register(t1);
-Texture2D RoughnessMap		: register(t2);
-Texture2D MetalMap			: register(t3);
+Texture2D NoiseMap			: register(t1);
+Texture2D NormalMap			: register(t2);
+Texture2D RoughnessMap		: register(t3);
+Texture2D MetalMap			: register(t4);
 
 // IBL-related textures
-Texture2D BrdfLookUpMap		: register(t4);
-TextureCube IrradianceIBLMap: register(t5);
-TextureCube SpecularIBLMap	: register(t6);
+Texture2D BrdfLookUpMap		: register(t5);
+TextureCube IrradianceIBLMap: register(t6);
+TextureCube SpecularIBLMap	: register(t7);
 
 // Samplers
 SamplerState BasicSampler	: register(s0);
@@ -78,12 +79,15 @@ PS_Output main(VertexToPixel input)
 	input.uv = input.uv * uvScale + uvOffset;
 
 	// Sample various textures
+	float4 noise = NoiseMap.Sample(BasicSampler, input.uv);
 	input.normal = NormalMapping(NormalMap, BasicSampler, input.uv, input.normal, input.tangent);
+	input.normal *= noise.r;
 	float roughness = RoughnessMap.Sample(BasicSampler, input.uv).r;
 	float metal = MetalMap.Sample(BasicSampler, input.uv).r;
 
 	// Gamma correct the texture back to linear space and apply the color tint
 	float4 surfaceColor = Albedo.Sample(BasicSampler, input.uv);
+	//surfaceColor.g *= noise.g;
 	surfaceColor.rgb = pow(surfaceColor.rgb, 2.2) * colorTint;
 
 	// Specular color - Assuming albedo texture is actually holding specular color if metal == 1

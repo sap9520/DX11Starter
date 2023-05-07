@@ -69,7 +69,8 @@ float4 main(VertexToPixel input) : SV_TARGET
 	// Gamma correct the texture back to linear space and apply the color tint
 	float4 surfaceColor = Albedo.Sample(BasicSampler, input.uv);
 	float4 noise = NoiseMap.Sample(BasicSampler, input.uv);
-	surfaceColor.rgb = pow(surfaceColor.rgb, 2.2) * colorTint * noise.rgb;
+	surfaceColor.r *= noise.r;
+	surfaceColor.rgb = pow(surfaceColor.rgb, 2.2) * colorTint;
 
 	// Total color for this pixel
 	float3 totalColor = float3(0,0,0);
@@ -78,20 +79,20 @@ float4 main(VertexToPixel input) : SV_TARGET
 	for (int i = 0; i < 1; i++)
 	{
 		// Which kind of light?
-		/*switch (lights[i].Type)
+		switch (lights[i].Type)
 		{
-		case LIGHT_TYPE_DIRECTIONAL:
-			totalColor += DirLight(lights[i], input.normal, input.worldPos, cameraPosition, specPower, surfaceColor.rgb);
-			break;
+			case LIGHT_TYPE_DIRECTIONAL:
+				totalColor += DirLight(lights[i], input.normal, input.worldPos, cameraPosition, specPower, surfaceColor.rgb);
+				break;
 
-		case LIGHT_TYPE_POINT:
-			totalColor += PointLight(lights[i], input.normal, input.worldPos, cameraPosition, specPower, surfaceColor.rgb);
-			break;
+			case LIGHT_TYPE_POINT:
+				totalColor += PointLight(lights[i], input.normal, input.worldPos, cameraPosition, specPower, surfaceColor.rgb);
+				break;
 
-		case LIGHT_TYPE_SPOT:
-			totalColor += SpotLight(lights[i], input.normal, input.worldPos, cameraPosition, specPower, surfaceColor.rgb);
-			break;
-		}*/
+			case LIGHT_TYPE_SPOT:
+				totalColor += SpotLight(lights[i], input.normal, input.worldPos, cameraPosition, specPower, surfaceColor.rgb);
+				break;
+		}
 	}
 
 	// Gamma correction

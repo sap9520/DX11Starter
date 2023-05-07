@@ -172,6 +172,7 @@ void Game::LoadAssetsAndCreateEntities()
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> roughA,  roughN,  roughR,  roughM;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> woodA, woodN, woodR, woodM;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> barkA, barkN, barkR, barkM;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> noNoise;
 
 	// Load the textures using our succinct LoadTexture() macro
 	LoadTexture(L"../../Assets/Textures/cobblestone_albedo.png", cobbleA);
@@ -214,6 +215,8 @@ void Game::LoadAssetsAndCreateEntities()
 	LoadTexture(L"../../Assets/Textures/bark_roughness.png", barkR);
 	LoadTexture(L"../../Assets/Textures/bark_metal.png", barkM);
 
+	LoadTexture(L"../../Assets/Textures/noise_none.png", noNoise);
+
 	// Describe and create our sampler states
 	D3D11_SAMPLER_DESC sampDesc = {};
 	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -254,9 +257,9 @@ void Game::LoadAssetsAndCreateEntities()
 	csMat->AddSampler("BasicSampler", samplerOptions);
 	csMat->AddSampler("ClampSampler", clampSamplerOptions);
 	csMat->AddTextureSRV("Albedo", csTextureSRV);
-	// csMat->AddTextureSRV("NoiseMap", csTextureSRV);
-	csMat->AddTextureSRV("NormalMap", csTextureSRV);
-	csMat->AddTextureSRV("RoughnessMap", csTextureSRV);
+	csMat->AddTextureSRV("NoiseMap", csTextureSRV);
+	csMat->AddTextureSRV("NormalMap", cobbleN);
+	csMat->AddTextureSRV("RoughnessMap", cobbleR);
 	csMat->AddTextureSRV("MetalMap", cobbleM);
 
 	// Create PBR materials
@@ -272,6 +275,7 @@ void Game::LoadAssetsAndCreateEntities()
 	cobbleMat4xPBR->AddSampler("BasicSampler", samplerOptions);
 	cobbleMat4xPBR->AddSampler("ClampSampler", clampSamplerOptions);
 	cobbleMat4xPBR->AddTextureSRV("Albedo", cobbleA);
+	cobbleMat4xPBR->AddTextureSRV("NoiseMap", noNoise);
 	cobbleMat4xPBR->AddTextureSRV("NormalMap", cobbleN);
 	cobbleMat4xPBR->AddTextureSRV("RoughnessMap", cobbleR);
 	cobbleMat4xPBR->AddTextureSRV("MetalMap", cobbleM);
@@ -280,6 +284,7 @@ void Game::LoadAssetsAndCreateEntities()
 	floorMatPBR->AddSampler("BasicSampler", samplerOptions);
 	floorMatPBR->AddSampler("ClampSampler", clampSamplerOptions);
 	floorMatPBR->AddTextureSRV("Albedo", floorA);
+	floorMatPBR->AddTextureSRV("NoiseMap", noNoise);
 	floorMatPBR->AddTextureSRV("NormalMap", floorN);
 	floorMatPBR->AddTextureSRV("RoughnessMap", floorR);
 	floorMatPBR->AddTextureSRV("MetalMap", floorM);
@@ -288,6 +293,7 @@ void Game::LoadAssetsAndCreateEntities()
 	paintMatPBR->AddSampler("BasicSampler", samplerOptions);
 	paintMatPBR->AddSampler("ClampSampler", clampSamplerOptions);
 	paintMatPBR->AddTextureSRV("Albedo", paintA);
+	paintMatPBR->AddTextureSRV("NoiseMap", csTextureSRV);
 	paintMatPBR->AddTextureSRV("NormalMap", paintN);
 	paintMatPBR->AddTextureSRV("RoughnessMap", paintR);
 	paintMatPBR->AddTextureSRV("MetalMap", paintM);
@@ -296,6 +302,7 @@ void Game::LoadAssetsAndCreateEntities()
 	scratchedMatPBR->AddSampler("BasicSampler", samplerOptions);
 	scratchedMatPBR->AddSampler("ClampSampler", clampSamplerOptions);
 	scratchedMatPBR->AddTextureSRV("Albedo", scratchedA);
+	scratchedMatPBR->AddTextureSRV("NoiseMap", noNoise);
 	scratchedMatPBR->AddTextureSRV("NormalMap", scratchedN);
 	scratchedMatPBR->AddTextureSRV("RoughnessMap", scratchedR);
 	scratchedMatPBR->AddTextureSRV("MetalMap", scratchedM);
@@ -303,6 +310,7 @@ void Game::LoadAssetsAndCreateEntities()
 	std::shared_ptr<Material> bronzeMatPBR = std::make_shared<Material>(pixelShaderPBR, vertexShader, XMFLOAT3(1, 1, 1), XMFLOAT2(2, 2));
 	bronzeMatPBR->AddSampler("BasicSampler", samplerOptions);
 	bronzeMatPBR->AddSampler("ClampSampler", clampSamplerOptions);
+	bronzeMatPBR->AddTextureSRV("NoiseMap", csTextureSRV);
 	bronzeMatPBR->AddTextureSRV("Albedo", bronzeA);
 	bronzeMatPBR->AddTextureSRV("NormalMap", bronzeN);
 	bronzeMatPBR->AddTextureSRV("RoughnessMap", bronzeR);
@@ -312,6 +320,7 @@ void Game::LoadAssetsAndCreateEntities()
 	roughMatPBR->AddSampler("BasicSampler", samplerOptions);
 	roughMatPBR->AddSampler("ClampSampler", clampSamplerOptions);
 	roughMatPBR->AddTextureSRV("Albedo", roughA);
+	roughMatPBR->AddTextureSRV("NoiseMap", noNoise);
 	roughMatPBR->AddTextureSRV("NormalMap", roughN);
 	roughMatPBR->AddTextureSRV("RoughnessMap", roughR);
 	roughMatPBR->AddTextureSRV("MetalMap", roughM);
@@ -320,6 +329,7 @@ void Game::LoadAssetsAndCreateEntities()
 	woodMatPBR->AddSampler("BasicSampler", samplerOptions);
 	woodMatPBR->AddSampler("ClampSampler", clampSamplerOptions);
 	woodMatPBR->AddTextureSRV("Albedo", woodA);
+	woodMatPBR->AddTextureSRV("NoiseMap", noNoise);
 	woodMatPBR->AddTextureSRV("NormalMap", woodN);
 	woodMatPBR->AddTextureSRV("RoughnessMap", woodR);
 	woodMatPBR->AddTextureSRV("MetalMap", bronzeM);
@@ -328,6 +338,7 @@ void Game::LoadAssetsAndCreateEntities()
 	barkMatPBR->AddSampler("BasicSampler", samplerOptions);
 	barkMatPBR->AddSampler("ClampSampler", clampSamplerOptions);
 	barkMatPBR->AddTextureSRV("Albedo", barkA);
+	barkMatPBR->AddTextureSRV("NoiseMap", noNoise);
 	barkMatPBR->AddTextureSRV("NormalMap", barkN);
 	barkMatPBR->AddTextureSRV("RoughnessMap", barkR);
 	barkMatPBR->AddTextureSRV("MetalMap", barkM);

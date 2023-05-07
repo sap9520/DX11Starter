@@ -7,8 +7,6 @@ cbuffer perFrame : register(b0)
 }
 
 RWTexture2D<unorm float4> outNoiseTexture		: register(u0);
-// SamplerState basicSampler				: register(s0);
-
 
 // https://thebookofshaders.com/12/
 float2 random(float2 uv)
@@ -51,7 +49,7 @@ float3 cellularNoise(float2 uv, float numCols, float numRows)
 
 	color += minDist;
 	color += 1 - step(0.02, minDist);
-	color.r += step(0.98, f.x) + step(0.98, f.y);
+	// color.r += step(0.98, f.x) + step(0.98, f.y);
 
 	return color;
 }
