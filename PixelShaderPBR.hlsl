@@ -87,7 +87,7 @@ PS_Output main(VertexToPixel input)
 
 	// Gamma correct the texture back to linear space and apply the color tint
 	float4 surfaceColor = Albedo.Sample(BasicSampler, input.uv);
-	//surfaceColor.g *= noise.g;
+	surfaceColor.g *= noise.g;
 	surfaceColor.rgb = pow(surfaceColor.rgb, 2.2) * colorTint;
 
 	// Specular color - Assuming albedo texture is actually holding specular color if metal == 1

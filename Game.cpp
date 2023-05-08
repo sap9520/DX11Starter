@@ -251,7 +251,7 @@ void Game::LoadAssetsAndCreateEntities()
 		device,
 		context);
 
-	// Create Compute Shader material
+	// Create Compute Shader materials
 	CreateComputeShaderResources();
 	std::shared_ptr<Material> csMatPBR = std::make_shared<Material>(pixelShaderPBR, vertexShader, XMFLOAT3(1, 1, 1), XMFLOAT2(2, 2));
 	csMatPBR->AddSampler("BasicSampler", samplerOptions);
@@ -262,6 +262,7 @@ void Game::LoadAssetsAndCreateEntities()
 	csMatPBR->AddTextureSRV("RoughnessMap", cobbleR);
 	csMatPBR->AddTextureSRV("MetalMap", cobbleM);
 
+	// Create PBR materials
 	std::shared_ptr<Material> csCobMatPBR = std::make_shared<Material>(pixelShaderPBR, vertexShader, XMFLOAT3(1, 1, 1), XMFLOAT2(1, 1));
 	csCobMatPBR->AddSampler("BasicSampler", samplerOptions);
 	csCobMatPBR->AddSampler("ClampSampler", clampSamplerOptions);
@@ -271,7 +272,6 @@ void Game::LoadAssetsAndCreateEntities()
 	csCobMatPBR->AddTextureSRV("RoughnessMap", cobbleR);
 	csCobMatPBR->AddTextureSRV("MetalMap", cobbleM);
 
-	// Create PBR materials
 	std::shared_ptr<Material> cobbleMat2xPBR = std::make_shared<Material>(pixelShaderPBR, vertexShader, XMFLOAT3(1, 1, 1), XMFLOAT2(2, 2));
 	cobbleMat2xPBR->AddSampler("BasicSampler", samplerOptions);
 	cobbleMat2xPBR->AddSampler("ClampSampler", clampSamplerOptions);
