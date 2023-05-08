@@ -253,14 +253,23 @@ void Game::LoadAssetsAndCreateEntities()
 
 	// Create Compute Shader material
 	CreateComputeShaderResources();
-	std::shared_ptr<Material> csMat = std::make_shared<Material>(pixelShaderPBR, vertexShader, XMFLOAT3(1, 1, 1), XMFLOAT2(2, 2));
-	csMat->AddSampler("BasicSampler", samplerOptions);
-	csMat->AddSampler("ClampSampler", clampSamplerOptions);
-	csMat->AddTextureSRV("Albedo", csTextureSRV);
-	csMat->AddTextureSRV("NoiseMap", csTextureSRV);
-	csMat->AddTextureSRV("NormalMap", cobbleN);
-	csMat->AddTextureSRV("RoughnessMap", cobbleR);
-	csMat->AddTextureSRV("MetalMap", cobbleM);
+	std::shared_ptr<Material> csMatPBR = std::make_shared<Material>(pixelShaderPBR, vertexShader, XMFLOAT3(1, 1, 1), XMFLOAT2(2, 2));
+	csMatPBR->AddSampler("BasicSampler", samplerOptions);
+	csMatPBR->AddSampler("ClampSampler", clampSamplerOptions);
+	csMatPBR->AddTextureSRV("Albedo", csTextureSRV);
+	csMatPBR->AddTextureSRV("NoiseMap", csTextureSRV);
+	csMatPBR->AddTextureSRV("NormalMap", cobbleN);
+	csMatPBR->AddTextureSRV("RoughnessMap", cobbleR);
+	csMatPBR->AddTextureSRV("MetalMap", cobbleM);
+
+	std::shared_ptr<Material> csCobMatPBR = std::make_shared<Material>(pixelShaderPBR, vertexShader, XMFLOAT3(1, 1, 1), XMFLOAT2(1, 1));
+	csCobMatPBR->AddSampler("BasicSampler", samplerOptions);
+	csCobMatPBR->AddSampler("ClampSampler", clampSamplerOptions);
+	csCobMatPBR->AddTextureSRV("Albedo", cobbleA);
+	csCobMatPBR->AddTextureSRV("NoiseMap", csTextureSRV);
+	csCobMatPBR->AddTextureSRV("NormalMap", cobbleN);
+	csCobMatPBR->AddTextureSRV("RoughnessMap", cobbleR);
+	csCobMatPBR->AddTextureSRV("MetalMap", cobbleM);
 
 	// Create PBR materials
 	std::shared_ptr<Material> cobbleMat2xPBR = std::make_shared<Material>(pixelShaderPBR, vertexShader, XMFLOAT3(1, 1, 1), XMFLOAT2(2, 2));
@@ -344,7 +353,11 @@ void Game::LoadAssetsAndCreateEntities()
 	barkMatPBR->AddTextureSRV("MetalMap", barkM);
 
 	// === Create the PBR entities =====================================
-	std::shared_ptr<GameEntity> cobSpherePBR = std::make_shared<GameEntity>(sphereMesh, csMat);
+	std::shared_ptr<GameEntity> cobCubePBR = std::make_shared<GameEntity>(cubeMesh, csCobMatPBR);
+	cobCubePBR->GetTransform()->SetPosition(-9, 2, 0);
+	cobCubePBR->GetTransform()->SetScale(2, 2, 2);
+
+	std::shared_ptr<GameEntity> cobSpherePBR = std::make_shared<GameEntity>(sphereMesh, csMatPBR);
 	cobSpherePBR->GetTransform()->SetPosition(-6, 2, 0);
 	cobSpherePBR->GetTransform()->SetScale(2, 2, 2);
 
@@ -439,6 +452,7 @@ void Game::LoadAssetsAndCreateEntities()
 	entities.push_back(logPBR4);
 	entities.push_back(logPBR5);
 	entities.push_back(logPBR6);
+	entities.push_back(cobCubePBR);
 
 	// Save assets needed for drawing point lights
 	lightMesh = sphereMesh;
