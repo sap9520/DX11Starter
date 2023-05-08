@@ -1,4 +1,8 @@
 
+// This shader is not in use anywhere
+// and was created to test the compute shader
+// withouth having to worry about any post-process or IBL
+
 #include "Lighting.hlsli"
 
 // How many lights could we handle?

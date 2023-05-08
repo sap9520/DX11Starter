@@ -8,7 +8,7 @@ cbuffer perFrame : register(b0)
 
 RWTexture2D<unorm float4> outNoiseTexture		: register(u0);
 
-// https://thebookofshaders.com/12/
+// Algorithm from https://thebookofshaders.com/12/
 float2 random(float2 uv)
 {
 	float2 output = dot(uv.xy, float2(12.9898, 78.233));
